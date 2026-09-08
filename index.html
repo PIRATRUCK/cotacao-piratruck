@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cotação Piratruck</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#111110; --surface:#1B1B18; --surface-2:#242420; --ink:#F4F1E6; --muted:#A9A494;
+  --line:#33322B; --accent:#FFC20E; --accent-ink:#171400; --accent-soft:#2B2408;
+  --hi:#FFC20E; --hi-soft:#262008; --neg:#FF8272; --ok:#7FD09A;
+  --input:#141412; --focus:#FFC20E;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.lbl,.eyebrow,.btn,th,.tot-label{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}
+.num,input[type=number],td.r,.tot-val,.kv b{font-variant-numeric:tabular-nums}
+
+header.top{background:var(--accent);color:var(--accent-ink);border-bottom:4px solid #000;padding:14px 28px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+header.top h1{margin:0;font-size:26px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+header.top .ver{font-family:"Barlow Condensed",sans-serif;font-size:14px;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+header.top .spacer{flex:1}
+header.top .btn{background:var(--accent-ink);color:var(--accent);border:0}
+
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;padding:22px 28px 60px;max-width:1440px;margin:0 auto}
+@media (max-width:980px){main{grid-template-columns:1fr}.summary{position:static!important}}
+
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;margin-bottom:18px}
+section.card h2{margin:0 0 14px;font-size:19px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);display:flex;align-items:center;gap:10px}
+section.card h2 small{font-family:"IBM Plex Sans",sans-serif;font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:12px 14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:700px){.g3,.g4,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.lbl{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+input[readonly]{background:var(--surface-2);color:var(--muted)}
+textarea{min-height:64px;resize:vertical}
+.hint{font-size:12px;color:var(--muted)}
+.hint.warn{color:var(--hi)}
+.hint.bad{color:var(--neg)}
+
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+td{padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.r,th.r{text-align:right;white-space:nowrap}
+td.un{color:var(--muted);font-size:12px;white-space:nowrap}
+tr.total td{border-bottom:0;font-weight:600}
+.tbl-wrap{overflow-x:auto}
+td input[type=number]{width:70px;text-align:right}
+td .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
+td .del:hover{color:var(--neg)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:4px;padding:7px 14px;font-size:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.btn:hover{background:var(--accent-soft)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+.summary{position:sticky;top:18px;align-self:start}
+.summary .card{padding:0;overflow:hidden}
+.summary section.card h2{background:var(--accent);color:var(--accent-ink);margin:0;padding:12px 18px;font-size:19px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:8px 18px;border-bottom:1px solid var(--line);font-size:13px}
+.kv span{color:var(--muted)}
+.kv b{font-weight:500}
+.kv.sub{padding-left:30px;font-size:12.5px}
+.kv.strong b{font-weight:600}
+.tot{padding:14px 18px;background:var(--hi-soft);border-top:2px solid var(--hi)}
+.tot-label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--hi);font-weight:600}
+.tot-val{font-size:30px;font-weight:600;line-height:1.1;font-family:"Barlow Condensed",sans-serif;color:var(--accent)}
+.tot-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.chip{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;letter-spacing:.04em;background:var(--accent-soft);color:var(--accent)}
+.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:14px 18px 4px}
+
+/* ---- Login ---- */
+.userchip{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:600;letter-spacing:.05em;background:var(--accent-ink);color:var(--accent);border-radius:999px;padding:4px 12px}
+#loginOverlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100}
+#loginOverlay[hidden]{display:none!important}
+.login-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;width:min(380px,100%);overflow:hidden}
+.login-head{background:var(--accent);color:var(--accent-ink);padding:18px;text-align:center}
+.login-head .mark{font-family:"Barlow Condensed",sans-serif;font-size:30px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.login-head .sub{font-family:"Barlow Condensed",sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase}
+.login-body{padding:20px;display:flex;flex-direction:column;gap:12px}
+.login-body .btn{justify-content:center}
+#loginErro{color:var(--neg);font-size:13px;min-height:1em}
+
+/* ---- Histórico ---- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow-y:auto}
+.overlay[hidden]{display:none!important}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:8px;width:min(1000px,100%);overflow:hidden}
+.modal-head{background:var(--accent);color:var(--accent-ink);padding:12px 18px;display:flex;align-items:center;gap:12px}
+.modal-head h2{margin:0;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex:1}
+.modal-head .x{background:var(--accent-ink);color:var(--accent);border:0;border-radius:4px;font-size:16px;padding:4px 10px;cursor:pointer}
+.modal-body{padding:16px 18px}
+.hist-filtros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px;margin-bottom:14px}
+@media (max-width:700px){.hist-filtros{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hist-meta{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hist-act{display:flex;gap:6px;justify-content:flex-end}
+.hist-act button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
+.hist-act button:hover{border-color:var(--accent);color:var(--accent)}
+.hist-act button.del:hover{border-color:var(--neg);color:var(--neg)}
+tr.hist-row td{cursor:default}
+.badge-cons{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+
+/* ---- Documento de cotação (PDF / impressão) ---- */
+#doc{display:none;background:#fff;color:#111;font-size:12px;font-family:"IBM Plex Sans",Arial,sans-serif;line-height:1.4;padding:0}
+#doc.render{display:block;position:fixed;left:-12000px;top:0;width:766px;z-index:-1;padding:14px}
+#doc,#doc th,#doc td,#doc h1,#doc h2,#doc b,#doc div,#doc span{color:#111}
+#doc .dlogo{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#111;padding:12px 18px;margin-bottom:14px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+#doc .dlogo img{height:44px;max-width:260px;object-fit:contain;display:block}
+#doc .dlogo .dlogo-mark,#doc .dlogo .dlogo-mark *{color:#FFC20E}
+#doc .dlogo .dlogo-mark{font-family:"Barlow Condensed",Arial,sans-serif;font-size:30px;font-weight:700;letter-spacing:.04em;line-height:1}
+#doc .dlogo .dlogo-sub{color:#fff;font-family:"Barlow Condensed",Arial,sans-serif;font-size:12px;letter-spacing:.22em;display:block;margin-top:2px}
+#doc .dlogo .dlogo-right{text-align:right}
+#doc .dlogo .dlogo-right,#doc .dlogo .dlogo-right *{color:#fff;font-size:10.5px}
+#doc table{width:100%;border-collapse:collapse;background:#fff}
+#doc th,#doc td{border-bottom:1px solid #bbb;padding:4px 6px;font-size:11.5px;background:#fff}
+#doc th{letter-spacing:.04em;text-transform:uppercase}
+#doc h1{font-family:"Barlow Condensed",Arial,sans-serif;font-size:24px;margin:0;text-transform:uppercase}
+#doc h2{font-family:"Barlow Condensed",Arial,sans-serif;font-size:14px;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid #111;padding-bottom:2px;color:#111;display:block}
+#doc .dhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:8px}
+#doc .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:3px 20px}
+#doc .dtot{margin-top:14px;display:grid;grid-template-columns:1fr auto;gap:4px 24px;font-size:13px}
+#doc .dtot .big{font-size:20px;font-weight:700}
+#doc .sig{margin-top:40px;display:flex;justify-content:space-between;gap:40px}
+#doc .sig div{flex:1;border-top:1px solid #111;padding-top:4px;text-align:center;font-size:11px}
+#doc .small{font-size:10.5px;color:#444}
+@media print{
+  @page{size:A4;margin:14mm}
+  body{background:#fff;color:#111;font-size:12px}
+  header.top,main,.overlay{display:none!important}
+  #doc{display:block;position:static;width:auto;padding:0}
+}
+@media (prefers-reduced-motion: no-preference){.tot-val{transition:color .2s}}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <h1>Cotação · Piratruck</h1>
+  <span class="ver">Memória de Cálculo 4.2 · RG 1260 Rev. 05</span>
+  <span class="spacer"></span>
+  <span class="userchip" id="userChip" hidden></span>
+  <button class="btn" type="button" onclick="abrirHist()">Histórico</button>
+  <button class="btn" type="button" onclick="limparTudo()">Nova cotação</button>
+  <button class="btn" type="button" id="btnSalvar" onclick="salvarManual()">Salvar cotação</button>
+  <button class="btn" type="button" id="btnPdf" onclick="imprimir()">Imprimir / PDF</button>
+  <button class="btn" type="button" id="btnSair" onclick="sair()" hidden>Sair</button>
+</header>
+
+<main>
+<div class="form">
+
+<section class="card">
+  <h2>Cliente <small>dados para o pedido de venda</small></h2>
+  <div class="grid g6">
+    <div class="f span3"><label class="lbl" for="cli_nome">Cliente</label><input id="cli_nome" data-k="cli_nome" placeholder="Razão social / nome"></div>
+    <div class="f span2"><label class="lbl" for="cli_doc">CPF / CNPJ</label><input id="cli_doc" data-k="cli_doc"></div>
+    <div class="f"><label class="lbl" for="cli_ie">Insc. estadual</label><input id="cli_ie" data-k="cli_ie"></div>
+    <div class="f span3"><label class="lbl" for="cli_end">Endereço</label><input id="cli_end" data-k="cli_end"></div>
+    <div class="f span2"><label class="lbl" for="cli_bairro">Bairro</label><input id="cli_bairro" data-k="cli_bairro"></div>
+    <div class="f"><label class="lbl" for="cli_cep">CEP</label><input id="cli_cep" data-k="cli_cep"></div>
+    <div class="f span2"><label class="lbl" for="cli_cidade">Cidade</label><input id="cli_cidade" data-k="cli_cidade"></div>
+    <div class="f"><label class="lbl" for="cli_uf">UF</label><input id="cli_uf" data-k="cli_uf" maxlength="2"></div>
+    <div class="f span3"><label class="lbl" for="cli_regime">Regime tributário</label>
+      <select id="cli_regime" data-k="cli_regime"><option value=""></option><option>MEI</option><option>SIMPLES NACIONAL</option><option>LUCRO REAL</option><option>LUCRO PRESUMIDO</option><option>LUCRO ARBITRADO</option><option>NENHUM</option></select></div>
+    <div class="f span2"><label class="lbl" for="cli_contato">Contato</label><input id="cli_contato" data-k="cli_contato"></div>
+    <div class="f span2"><label class="lbl" for="cli_tel">Telefone / celular</label><input id="cli_tel" data-k="cli_tel"></div>
+    <div class="f span2"><label class="lbl" for="cli_email">E-mail</label><input id="cli_email" data-k="cli_email" type="email"></div>
+    <div class="f span2"><label class="lbl" for="consultor">Consultor</label><input id="consultor" data-k="consultor"></div>
+    <div class="f span2"><label class="lbl" for="pedido">Nº pedido / proposta</label><input id="pedido" data-k="pedido"></div>
+    <div class="f span2"><label class="lbl" for="data">Data</label><input id="data" data-k="data" type="date"></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Impostos, comissão e descontos</h2>
+  <div class="grid g6">
+    <div class="f"><label class="lbl" for="icms">ICMS %</label>
+      <select id="icms" data-k="icms"></select></div>
+    <div class="f"><label class="lbl" for="ipi">IPI %</label>
+      <select id="ipi" data-k="ipi"><option value="0">0</option><option value="5">5</option></select></div>
+    <div class="f"><label class="lbl" for="pis">PIS/COFINS %</label>
+      <select id="pis" data-k="pis"><option value="9.25">9,25</option><option value="0">0</option></select></div>
+    <div class="f"><label class="lbl" for="comissao">Comissão %</label><input id="comissao" data-k="comissao" type="number" step="0.01" min="0" value="0"></div>
+    <div class="f"><label class="lbl" for="desc">Desconto produto %</label><input id="desc" data-k="desc" type="number" step="0.01" min="0" max="100" value="43"></div>
+    <div class="f"><label class="lbl" for="descPneu">Desconto pneus %</label><input id="descPneu" data-k="descPneu" type="number" step="0.01" min="0" max="100" value="48.69"></div>
+    <div class="f span2"><label class="lbl" for="ajuste">Desconto (−) ou acréscimo (+) em R$ no preço final</label><input id="ajuste" data-k="ajuste" type="number" step="0.01" value="0"></div>
+    <div class="f span2"><label class="lbl" for="lpp">Lista de preço (LPP)</label>
+      <select id="lpp" data-k="lpp"></select></div>
+    <div class="f span2"><span class="lbl">Comissão autorizada</span><input id="comAut" readonly><span class="hint">Acima de 5%, a parte excedente é dividida por 2.</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Produto</h2>
+  <div class="grid g6">
+    <div class="f span2"><label class="lbl" for="familia">Família</label><select id="familia" data-k="familia"></select></div>
+    <div class="f span3"><label class="lbl" for="modelo">Modelo (lista de preço)</label><select id="modelo" data-k="modelo"></select></div>
+    <div class="f"><label class="lbl" for="qtd">Qtde.</label><input id="qtd" data-k="qtd" type="number" min="1" step="1" value="1"></div>
+  </div>
+  <div class="grid g6" style="margin-top:12px">
+    <div class="f"><span class="lbl">Código</span><input id="p_cod" readonly></div>
+    <div class="f"><span class="lbl">Tipo</span><input id="p_tipo" readonly></div>
+    <div class="f"><span class="lbl">Cam. trator</span><input id="p_trator" readonly></div>
+    <div class="f"><span class="lbl">Comprimento</span><input id="p_comp" readonly></div>
+    <div class="f"><span class="lbl">Assoalho</span><input id="p_asso" readonly></div>
+    <div class="f"><span class="lbl">Preço público unit.</span><input id="p_preco" readonly class="num"></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Opcionais de lista <small>filtrados pela família do produto</small></h2>
+  <div class="tbl-wrap"><table id="tblOpc">
+    <thead><tr><th style="width:58%">Descrição</th><th>Unidade</th><th class="r">Qtde.</th><th class="r">Preço público</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <div class="actions"><button class="btn" type="button" onclick="addOpc()">+ Adicionar opcional</button></div>
+  <p class="hint">Itens "M/Linear" são multiplicados pelo comprimento do produto (em metros) e pela quantidade.</p>
+</section>
+
+<section class="card">
+  <h2>Remonta, montagem e rodas</h2>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:58%">Item</th><th>Unidade</th><th class="r">Qtde.</th><th class="r">Preço público</th></tr></thead>
+    <tbody>
+      <tr><td><select id="remonta" data-k="remonta"></select></td><td class="un">Un.</td><td class="r"><input id="remontaQ" data-k="remontaQ" type="number" min="0" step="1" value="1"></td><td class="r num" id="remontaV">—</td></tr>
+      <tr><td><select id="montagem" data-k="montagem"></select></td><td class="un">Un.</td><td class="r"><input id="montagemQ" data-k="montagemQ" type="number" min="0" step="1" value="0"></td><td class="r num" id="montagemV">—</td></tr>
+      <tr><td><select id="rodas" data-k="rodas"></select></td><td class="un">Un.</td><td class="r"><input id="rodasQ" data-k="rodasQ" type="number" min="0" step="1" value="1"></td><td class="r num" id="rodasV">—</td></tr>
+    </tbody>
+  </table></div>
+  <p class="hint warn">O preço público já considera a roda de aço. Use o campo Rodas somente se optar por uma opção diferente da padrão.</p>
+</section>
+
+<section class="card">
+  <h2>Opcionais sob consulta <small>preço de lista informado manualmente</small></h2>
+  <div class="tbl-wrap"><table id="tblMan">
+    <thead><tr><th style="width:58%">Descrição</th><th class="r">Preço público unit.</th><th class="r">Qtde.</th><th class="r">Total</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <div class="actions"><button class="btn" type="button" onclick="addMan()">+ Adicionar item manual</button></div>
+</section>
+
+<section class="card">
+  <h2>Pneus</h2>
+  <div class="grid g6">
+    <div class="f span4"><label class="lbl" for="pneu">Pneu</label><select id="pneu" data-k="pneu"></select></div>
+    <div class="f"><label class="lbl" for="pneuQ">Qtde.</label><input id="pneuQ" data-k="pneuQ" type="number" min="0" step="1" value="0"></div>
+    <div class="f"><span class="lbl">Preço público unit.</span><input id="pneuP" readonly class="num"></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Condições comerciais e observações</h2>
+  <div class="grid g2">
+    <div class="f"><label class="lbl" for="pgto">Forma de pagamento</label><input id="pgto" data-k="pgto" value="PARCELADO BOLETO 30/60/90DD"></div>
+    <div class="f"><label class="lbl" for="entrega">Local / data de entrega</label><input id="entrega" data-k="entrega" value="SUMARÉ/SP"></div>
+    <div class="f span2"><label class="lbl" for="obs">Observações / detalhes de fabricação</label><textarea id="obs" data-k="obs"></textarea></div>
+  </div>
+</section>
+
+</div>
+
+<aside class="summary">
+  <section class="card">
+    <h2>Resumo da cotação</h2>
+    <div class="eyebrow">Produto e opcionais</div>
+    <div class="kv"><span>Total preço público</span><b id="s_pp">—</b></div>
+    <div class="kv sub"><span id="s_ipiLbl">Com IPI</span><b id="s_ipi">—</b></div>
+    <div class="kv sub"><span>Base ajustada aos impostos</span><b id="s_base">—</b></div>
+    <div class="kv sub"><span>Desconto autorizado</span><b id="s_desc">—</b></div>
+    <div class="kv strong"><span>Preço distribuidor c/ comissão</span><b id="s_dist">—</b></div>
+    <div class="eyebrow">Pneus</div>
+    <div class="kv"><span>Preço público unit.</span><b id="s_pneuPP">—</b></div>
+    <div class="kv sub"><span>Unit. distribuidor c/ comissão</span><b id="s_pneuU">—</b></div>
+    <div class="kv strong"><span>Total pneus</span><b id="s_pneuT">—</b></div>
+    <div class="eyebrow">Fechamento</div>
+    <div class="kv"><span>Ajuste manual (R$)</span><b id="s_aj">—</b></div>
+    <div class="kv"><span>Valor unitário produto</span><b id="s_unit">—</b></div>
+    <div class="kv"><span>Unit. produto + pneus</span><b id="s_unitPneu">—</b></div>
+    <div class="kv"><span>Quantidade</span><b id="s_qtd">—</b></div>
+    <div class="tot">
+      <div class="tot-label">Valor total da venda</div>
+      <div class="tot-val" id="s_total">—</div>
+      <div class="tot-sub" id="s_totSub"></div>
+    </div>
+  </section>
+  <p class="hint" style="margin:10px 4px">Os valores seguem a Memória de Cálculo 4.2: preço público → ajuste de impostos (ICMS, IPI, PIS/COFINS) → desconto → comissão. Pneus têm desconto e alíquota próprios.</p>
+</aside>
+</main>
+
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-head"><div class="mark">Piratruck</div><div class="sub">Cotação de implementos</div></div>
+    <form class="login-body" id="loginForm">
+      <div class="f"><label class="lbl" for="loginEmail">E-mail</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="f"><label class="lbl" for="loginSenha">Senha</label><input id="loginSenha" type="password" autocomplete="current-password" required></div>
+      <div id="loginErro"></div>
+      <button class="btn primary" type="submit" id="btnEntrar">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="histOverlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Histórico de cotações</h2>
+      <button class="x" type="button" onclick="fecharHist()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="hist-filtros">
+        <div class="f"><label class="lbl" for="fCons">Quem cotou (consultor)</label><select id="fCons"><option value="">Todos</option></select></div>
+        <div class="f"><label class="lbl" for="fCli">Cliente</label><input id="fCli" placeholder="Buscar por nome"></div>
+        <div class="f"><label class="lbl" for="fDe">De</label><input id="fDe" type="date"></div>
+        <div class="f"><label class="lbl" for="fAte">Até</label><input id="fAte" type="date"></div>
+      </div>
+      <div class="hist-meta"><span id="histCount"></span><span id="histFonte"></span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Data</th><th>Consultor</th><th>Cliente</th><th>Produto</th><th class="r">Qtde.</th><th class="r">Valor total</th><th></th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<div id="doc"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const BASE = {"sr": [{"cod": "B0225665", "fam": "Basculante", "desc": "SR BA GR 3E (MISTA 1+2) 8270 20M3 4X2 LAT/ASS 3,00", "preco": 286851.4955, "mm": 8270, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0212353", "fam": "Basculante", "desc": "SR BA AB 3E (MISTA 1+2) 8530 20M3 4X2 LAT/ASS 4,75", "preco": 292199.3119, "mm": 8530, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0212010", "fam": "Basculante", "desc": "SR BA AB 3E (MISTA 1+2) 8600 25M3 4X2 LAT/AS 4,75", "preco": 304570.4816, "mm": 8600, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0212330", "fam": "Basculante", "desc": "SR BA AB/GR 3E (MISTA 1+2) 8700 30M3 4X2 LAT 3,00/ASS 4,75", "preco": 299175.3031, "mm": 8700, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0216053", "fam": "Basculante", "desc": "SR BA AB/GR 3E (MISTA 1+2) 8800 35M3 4X2 LAT 3,00/ASS 4,75", "preco": 300126.1701, "mm": 8800, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0215363", "fam": "Basculante", "desc": "SR BA AB 3E 8530 6X2 20M3 LAT/AS 4,75", "preco": 245113.8749, "mm": 8530, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0232594", "fam": "Basculante", "desc": "SR BA GR 3E 8605 6X2 25M3 LAT/AS 3,00", "preco": 241476.813, "mm": 8605, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0196305", "fam": "Basculante", "desc": "SR BA AB 3E 8605 6X2 25M3 LAT/AS 4,75", "preco": 255684.8411, "mm": 8605, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0236729", "fam": "Basculante", "desc": "SR BA GR 3E 8700 6X2 30M3 LAT/AS 3,00", "preco": 246045.3513, "mm": 8700, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0209587", "fam": "Basculante", "desc": "SR BA AB/GR 3E 8620 6X2 30M3 LAT3,00/AS 4,75", "preco": 247630.0449, "mm": 8620, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0217564", "fam": "Basculante", "desc": "SR BA AB/GR 3E 8800 6X2 35M3 LAT 3,00/AS 4,75", "preco": 251519.2659, "mm": 8800, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0198553", "fam": "Basculante", "desc": "SR BA GR 3E 9575 6X2 40M3 LAT/AS 3,00", "preco": 254046.1556, "mm": 9575, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0227106", "fam": "Basculante", "desc": "SR BA AB/GR 3E 9650 6X2 45M3 LAT 3,00/AS 4,75", "preco": 262078.8497, "mm": 9650, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0206541", "fam": "Basculante", "desc": "SR BA AB/GR 3E 11850 6X2 45M3 LONGA LAT 3,00 /AS 4,75", "preco": 291099.1992, "mm": 11850, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0212411", "fam": "Basculante", "desc": "SR BA AB/GR 4E (MISTA 1+3) 11965 6X2 35M3 PER LAT 3,00 /AS 4,75", "preco": 378263.8711, "mm": 11988, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0237672", "fam": "Basculante", "desc": "SR BA AB 4E (MISTA 1+3) 11965 6X2 35M3 LAT/ASS 4,75", "preco": 387019.4747, "mm": 11695, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0235152", "fam": "Basculante", "desc": "SR BA AB/GR 4E (MISTA 1+3) 11770 6X2 40M3 PER LAT 3,00 /AS 4,75", "preco": 381610.1424, "mm": 11770, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0206309", "fam": "Basculante", "desc": "SR BA AB/GR 4E (MISTA 1+3) 11850 6X2 45M3 PER LAT 3,00 /AS 4,75", "preco": 382226.66, "mm": 11850, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0202349", "fam": "Basculante", "desc": "SR BA GR 4E (MISTA 1+3) 11910 6X2 50M3 LAT/AS 3,00", "preco": 380146.9926, "mm": 11910, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0210074", "fam": "Basculante", "desc": "SR BA GR 4E (MISTA 1+3) 11988 6X2 55M3 PER LAT/AS 3,00", "preco": 384494.9095, "mm": 11988, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0218835", "fam": "Basculante", "desc": "SR BA GR 4E (MISTA 1+3) 12385 6X2 58M3 PER LAT/AS 3,00", "preco": 398531.3273, "mm": 12385, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0216019", "fam": "Basculante", "desc": "SR BA GR 4E (MISTA 1+3) 12385 6X2 65M3 LAT/ASS 3,00", "preco": 410573.0057, "mm": 12385, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0214578/B0214579", "fam": "Basculante", "desc": "CONJ. BT BA AB 2E 6X2 20+20M³ LAT/ASS 4,75", "preco": 454051.7345, "mm": 13440, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0215332/B0215333", "fam": "Basculante", "desc": "CONJ. BT BA AB/GR 2E 6X2 25+25M³ LAT3,00 /ASS 4,75", "preco": 455922.9789, "mm": 13440, "assoalho": "Assoalho 4,75 mm"}, {"cod": "B0200782/B0200783", "fam": "Basculante", "desc": "CONJ. BT BA GR 2E 6X2 28+28M³ LAT/ASS 3,00", "preco": 433630.4555, "mm": 13440, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0212604/B0212605/D0221676", "fam": "Basculante", "desc": "CONJ. RT BA AB HD 2E 6X2 25+25M³ LAT/ASS 4,75 C/DOLLY 5ª RODA", "preco": 565883.7083, "mm": 17970, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0214942/B0212605/D0221683", "fam": "Basculante", "desc": "CONJ. RT BA AB HD 2E 6X2 25+25M³ LAT/ASS 4,75 C/ ENG. ESFÉRICO", "preco": 570272.8305, "mm": 18060, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0200157/B0198522/D0221683", "fam": "Basculante", "desc": "CONJ. RT BA GR HD 2E 6X2 35+35M³ LAT/ASS 3,00 C/ ENG. ESFÉRICO", "preco": 556442.4807, "mm": 18515, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0198521/B0198522/D0221676", "fam": "Basculante", "desc": "CONJ. RT BA GR HD 2E 6X2 35+35M³ LAT/ASS 3,00 C/ DOLLY 5ª RODA", "preco": 555463.1823, "mm": 18826, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0209809/B0209810/D0221676", "fam": "Basculante", "desc": "CONJ. RT BA GR HD 2E 6X2 55+55M³ LAT/ASS 3,00 C/ DOLLY 5ª RODA", "preco": 597319.5488, "mm": 18600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0198380/B0198381/D0221676", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 35+35M³ LAT/ASS 3,00 C/DOLLY 5ª RODA", "preco": 547486.5175, "mm": 18240, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0198685/B0198381/D0221683", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 35+35M³ LAT/ASS 3,00 C/ ENG. ESFÉRICO", "preco": 547951.0238, "mm": 18400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0234570/B0234574/D0221683", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 45+45M³ LAT/ASS 3,00 C/ ENG. ESFÉRICO 4 COLUNAS", "preco": 588862.4752, "mm": 18400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0236883/B0234574/D0221676", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 45+45M³ LAT/ASS 3,00 C/ DOLLY 5ª RODA 4 COLUNAS", "preco": 585532.1397, "mm": 18400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "B0215375/B0215377/D0221676", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 35+35M³ LAT/ASS 2,00 C/ DOLLY 5ª RODA", "preco": 555310.0601, "mm": 18240, "assoalho": "Assoalho 2,00 mm"}, {"cod": "B0215383/B0215377/D0221683", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 35+35M³ LAT/ASS 2,00 C/ ENG. ESFÉRICO", "preco": 554207.5487, "mm": 18400, "assoalho": "Assoalho 2,00 mm"}, {"cod": "B0220320/B0220321/D0221683", "fam": "Basculante", "desc": "CONJ. RT BA GR 2E 6X2 35+35M³ LAT 2,00/ASS 3,00 C/ ENG. ESFÉRICO 4 COLUNAS", "preco": 554494.8903, "mm": 18400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "CT0195526", "fam": "Carrega Tudo", "desc": "SR CT PL 2E 12300X3000 6X2/6x4 PL.U.8100", "preco": 292219.9756, "mm": 12300, "assoalho": "Padrão"}, {"cod": "CT0197696", "fam": "Carrega Tudo", "desc": "SR CT PL 2E 13300X3000 6X2/6x4 PL.U.9100", "preco": 307608.597, "mm": 13300, "assoalho": "Padrão"}, {"cod": "CT0197735", "fam": "Carrega Tudo", "desc": "SR CT PL 2E 14300X3000 6X2/6X4 PL.U.10100", "preco": 320448.7727, "mm": 14300, "assoalho": "Padrão"}, {"cod": "CT0207132", "fam": "Carrega Tudo", "desc": "SR CT PL 3E 14600X3000 6X2/6x4 PL.U.10500", "preco": 363493.8739, "mm": 15000, "assoalho": "Padrão"}, {"cod": "CT0200560", "fam": "Carrega Tudo", "desc": "SR CT PL 3E 15600X3000 6X2/6x4 PL.U.11500", "preco": 368497.1972, "mm": 15600, "assoalho": "Padrão"}, {"cod": "CT0215214", "fam": "Carrega Tudo", "desc": "SR CT PL 4E 18100X3200 6X2/6X4 4E PL.U.14100", "preco": 456789.5713, "mm": 18100, "assoalho": "Padrão"}, {"cod": "CT0238410", "fam": "Carrega Tudo", "desc": "SR CT PDES 4E 18200X3200 6X2/6X4 PL.U.7500", "preco": 575403.8088, "mm": 18200, "assoalho": "Padrão"}, {"cod": "CT0210867", "fam": "Carrega Tudo", "desc": "SR CT REB 3E 16800X3000 6X2/6x4 PL.U. 7000", "preco": 390519.7333, "mm": 16800, "assoalho": "Padrão"}, {"cod": "CT0206657", "fam": "Carrega Tudo", "desc": "SR CT AGR 3E 20500X3200 6X2/6x4 PL.U. 15400", "preco": 430134.9195, "mm": 20500, "assoalho": "Padrão"}, {"cod": "CT0210353", "fam": "Carrega Tudo", "desc": "SR CT AGR 4E 20500X3200 6X2/6x4 PL.U. 15400", "preco": 491490.9633, "mm": 20500, "assoalho": "Padrão"}, {"cod": "CT0210520", "fam": "Carrega Tudo", "desc": "SR CT AGR 4E 22300X3200 6X2/6x4 PL.U. 17100", "preco": 507702.7786, "mm": 22300, "assoalho": "Padrão"}, {"cod": "T0210451/T0210452", "fam": "Florestal", "desc": "CONJ. BT FL PL 2E MEC 7500 6x4 - 6 FUEIROS 9 TON C/CATRACA MANUAL (3 PCT.)", "preco": 437103.0324, "mm": 15000, "assoalho": "Padrão"}, {"cod": "T0207524/T0207525", "fam": "Florestal", "desc": "CONJ. BT FL PL 2E MEC 7500 6x4 - 3 FUEIROS  9 TON C/CATRACA AUTOM. (1 PCT.)", "preco": 370523.4571, "mm": 15000, "assoalho": "Padrão"}, {"cod": "G0226334", "fam": "Bobineiro", "desc": "SR CS BOB 12430 6X2 3E MEC ASS CHAPA", "preco": 237755.255, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0226187", "fam": "Bobineiro", "desc": "SR GR BOB 12430 6X2 3E MEC ASS CHAPA", "preco": 269579.2708, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0223885", "fam": "Bobineiro", "desc": "SR CS BOB 13500 6X2 3E MEC ASS CHAPA", "preco": 248054.8612, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0223565", "fam": "Bobineiro", "desc": "SR GR BOB 13500 6X2 3E MEC ASS CHAPA", "preco": 281557.7375, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222233", "fam": "Bobineiro", "desc": "SR CS BOB 13500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 321372.108, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222246", "fam": "Bobineiro", "desc": "SR CS BOB 13500 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 368526.4803, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222058", "fam": "Bobineiro", "desc": "SR GR BOB 13500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 357260.9909, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222245", "fam": "Bobineiro", "desc": "SR GR BOB 13500 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 405067.6809, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222811", "fam": "Bobineiro", "desc": "SR CS BOB 14000 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 328383.1733, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222553", "fam": "Bobineiro", "desc": "SR GR BOB 14000 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 412755.3956, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220968", "fam": "Bobineiro", "desc": "SR CS BOB 14000 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 374553.4616, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0222725", "fam": "Bobineiro", "desc": "SR GR BOB 14000 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 365743.0744, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232074", "fam": "Bobineiro", "desc": "SR CS BOB 14500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 331908.4125, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232025", "fam": "Bobineiro", "desc": "SR GR BOB 14500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 370776.8265, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0231203", "fam": "Bobineiro", "desc": "SR CS BOB 14500 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 371880.2115, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0231274", "fam": "Bobineiro", "desc": "SR GR BOB 14500 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 417469.6987, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220106", "fam": "Carga Seca", "desc": "SR CS 10600 6X2 2E (1+1 MISTA) ASS CHAPA", "preco": 176069.1672, "mm": 10600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220104", "fam": "Carga Seca", "desc": "SR CS 10600 6X2 2E (1+1 100% PNEU) ASS CHAPA", "preco": 193876.4853, "mm": 10600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232874", "fam": "Carga Seca", "desc": "SR CS 11400 6X2 2E (1+1 MISTA) ASS CHAPA", "preco": 183236.0766, "mm": 11400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232876", "fam": "Carga Seca", "desc": "SR CS 11400 6X2 2E (1+1 100% PNEU) ASS CHAPA", "preco": 196332.2369, "mm": 11400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220026", "fam": "Carga Seca", "desc": "SR CS 12430 6X2 3E MEC ASS MAD", "preco": 189198.6852, "mm": 12430, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220030", "fam": "Carga Seca", "desc": "SR CS 12430 6X2 3E MEC ASS CHAPA", "preco": 198509.8516, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0218233", "fam": "Carga Seca", "desc": "SR CS 12430 6X2 3E MEC 12 ENG ASS MAD (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 210529.3373, "mm": 12430, "assoalho": "Assoalho 22 mm"}, {"cod": "G0232471", "fam": "Carga Seca", "desc": "SR CS 12430 6X2 3E MEC 12 ENG ASS CHAPA (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 210501.539, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232617", "fam": "Carga Seca", "desc": "SR CS 13500 6X2 3E MEC ASS MAD", "preco": 198503.101, "mm": 13500, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220034", "fam": "Carga Seca", "desc": "SR CS 13500 6X2 3E MEC ASS CHAPA", "preco": 208830.1385, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220002", "fam": "Carga Seca", "desc": "SR CS 13500 6X2 4E (MISTA 1+3) ASS MAD", "preco": 272484.6009, "mm": 13500, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220004", "fam": "Carga Seca", "desc": "SR CS 13500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 284732.8897, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0216210", "fam": "Carga Seca", "desc": "SR CS 14000 6x2 3E MEC ASS CHAPA", "preco": 218382.8014, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0235058", "fam": "Carga Seca", "desc": "SR CS 14000 6X2 3E MEC 04 ENG ASS CHAPA (1X40\")", "preco": 223877.7925, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220038", "fam": "Carga Seca", "desc": "SR CS 14000 6X2 3E MEC 12 ENG ASS CHAPA (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 232185.9204, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220008", "fam": "Carga Seca", "desc": "SR CS 14000 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 291434.9922, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220006", "fam": "Carga Seca", "desc": "SR CS 14000 6X2 4E (MISTA 1+3) ASS MAD", "preco": 279227.0979, "mm": 14000, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220010", "fam": "Carga Seca", "desc": "SR CS 14000 6X2 4E (MISTA 1+3) 04 ENG ASS CHAPA (1X40\")", "preco": 294252.2086, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220012", "fam": "Carga Seca", "desc": "SR CS 14000 6X2 4E (MISTA 1+3) 12 ENG ASS CHAPA (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 302486.962, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220014", "fam": "Carga Seca", "desc": "SR CS 14500 6X2 4E (MISTA 1+3) ASS MAD", "preco": 285188.1958, "mm": 14500, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220016", "fam": "Carga Seca", "desc": "SR CS 14500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 295782.6086, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0231292", "fam": "Carga Seca", "desc": "SR CS 14500 6X2 4E (100% PN 1+3) ASS CHAPA", "preco": 356908.6128, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0205978", "fam": "Carga Seca", "desc": "SR CS 14750 6X2 4E (MISTA 1+3) ASS MAD", "preco": 282709.7306, "mm": 14750, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220020", "fam": "Carga Seca", "desc": "SR CS 14750 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 296582.4717, "mm": 14750, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220022", "fam": "Carga Seca", "desc": "SR CS 15000 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 299443.849, "mm": 15000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0211389", "fam": "Carga Seca", "desc": "SR CS 15400 6X2 3E MEC ASS MAD", "preco": 217533.9056, "mm": 15400, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220042", "fam": "Carga Seca", "desc": "SR CS 15400 6X2 3E MEC ASS CHAPA", "preco": 227365.5819, "mm": 15400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0225468", "fam": "Carga Seca", "desc": "SR CS 14750 6X2 3E MEC ASS CHAPA", "preco": 223481.0445, "mm": 14750, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0225925", "fam": "Carga Seca", "desc": "SR CS 15400 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 301278.7942, "mm": 15400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0202288", "fam": "Carga Seca", "desc": "SR CS 15500 6X2 4E (MISTA 1+3) ASS CHAPA 6 TAMPAS", "preco": 319947.3898, "mm": 15500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220024", "fam": "Carga Seca", "desc": "SR CS 15500 6X2 4E (MISTA 1+3) ASS CHAPA 6 TAMPAS C/TOMBADOR", "preco": 331222.9772, "mm": 15500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220072/G0220074", "fam": "Carga Seca", "desc": "CONJ. BT CS 2E 7100+7100 6X2 ASS MAD", "preco": 293206.896, "mm": 14200, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220076/G0220078", "fam": "Carga Seca", "desc": "CONJ. BT CS 2E 7100+7100 6X2 ASS CHAPA", "preco": 300932.0764, "mm": 14200, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220080/G0220082", "fam": "Carga Seca", "desc": "CONJ. BT CS 2E 7540+7540 6X2 ASS MAD", "preco": 297192.1238, "mm": 15080, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220084/G0220086", "fam": "Carga Seca", "desc": "CONJ. BT CS 2E 7540+7540 6X2 ASS CHAPA", "preco": 303911.6947, "mm": 15080, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220076/G0220078", "fam": "Carga Seca", "desc": "CONJ. BT CS 2E 7100+7100 6X2 ASS CHAPA", "preco": 300932.0764, "mm": 14200, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220088/G0220090", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 9350+11400 6X2 ASS MAD", "preco": 374963.9656, "mm": 20750, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220092/G0220094", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 9350+11400 6X2 ASS CHAPA", "preco": 391049.9654, "mm": 20750, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220864/G0220796", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 8300+12430 6X2 ASS CHAPA", "preco": 400418.3188, "mm": 20700, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220092/G0220102", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 9350+12430 6X2 ASS CHAPA", "preco": 397893.5487, "mm": 21780, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220096/G0220102", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 12430+12430 6X2 ASS CHAPA", "preco": 429364.5004, "mm": 24860, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220100/G0220102", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 12430+12430 6X2 ASS CHAPA (DIANT. DESLIZANTE)", "preco": 465969.1782, "mm": 24860, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0213991/G0207542", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 12430+12430 6X2 ASS CHAPA (DIANT. DESLIZANTE) [08 ENG 1X40\" - 2X20\" + 12 ENG 1X40\" - 2X20\" - 1X20\" CENTRAL]", "preco": 496299.6048, "mm": 24860, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0207540/G0207542", "fam": "Carga Seca", "desc": "CONJ. BT CS 3E 9350+12430 6X2 ASS CHAPA [04 ENG 1X40\" + 12 ENG 1X40\" - 2X20\" - 1X20\" CENTRAL]", "preco": 414364.2815, "mm": 21780, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220052/G0220054/D0221690", "fam": "Carga Seca", "desc": "CONJ. RDT CS 2E 9350+9350 6X2 ASS MAD C/5ª RODA (3TAMPAS)", "preco": 431786.8472, "mm": 18700, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220066/G0220068/D0221699", "fam": "Carga Seca", "desc": "CONJ. RDT CS 2E 9350+9350 6X2 ASS MAD C/ ENG.ESFÉRICO (3TAMPAS)", "preco": 429297.5902, "mm": 18700, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220044/G0220046/D0221690", "fam": "Carga Seca", "desc": "CONJ. RDT CS 2E 9425+9425 6X2 ASS MAD C/5ª RODA", "preco": 436741.0427, "mm": 18850, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220048/G0220050/D0221690", "fam": "Carga Seca", "desc": "CONJ. RDT CS 2E 9425+9425 6X2 ASS CHAPA C/5ª RODA", "preco": 444395.0686, "mm": 18850, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220056/G0220058/D0221690", "fam": "Carga Seca", "desc": "CONJ. RDT CS 2E 10300+10300 6X2 ASS MAD C/5ª RODA", "preco": 431316.0114, "mm": 20600, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220060/G0220062/D0221690", "fam": "Carga Seca", "desc": "CONJ. RDT CS 2E 10300+10300 6X2 ASS CHAPA C/5ª RODA", "preco": 469941.2668, "mm": 20600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220103", "fam": "Graneleiro", "desc": "SR GR 10600 6X2 2E (100% PN 1+1)  ASS CHAPA", "preco": 220714.9469, "mm": 10600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220105", "fam": "Graneleiro", "desc": "SR GR 10600 6X2 2E (MISTA 1+1) ASS CHAPA", "preco": 206624.7487, "mm": 10600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232875", "fam": "Graneleiro", "desc": "SR GR 11400 6X2 2E (100% PN 1+1)  ASS CHAPA", "preco": 224490.2245, "mm": 11400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0240275", "fam": "Graneleiro", "desc": "SR GR 11400 4X2 2E (MISTA 1+1) ASS CHAPA", "preco": 205928.669, "mm": 11400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232707", "fam": "Graneleiro", "desc": "SR GR 11400 6X2 2E (MISTA 1+1) ASS CHAPA", "preco": 211758.6781, "mm": 11400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220025", "fam": "Graneleiro", "desc": "SR GR 12430 6X2 3E MEC ASS MAD", "preco": 216503.9343, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220029", "fam": "Graneleiro", "desc": "SR GR 12430 6X2 3E MEC ASS CHAPA", "preco": 228524.5197, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0218461", "fam": "Graneleiro", "desc": "SR GR 12430 6X2 3E MEC 12 ENG ASS MAD (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 233092.8573, "mm": 12430, "assoalho": "Assoalho 22 mm"}, {"cod": "G0232522", "fam": "Graneleiro", "desc": "SR GR 12430 6X2 3E MEC 12 ENG ASS CHAPA (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 243348.8892, "mm": 12430, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0232552", "fam": "Graneleiro", "desc": "SR GR 13500 6X2 3E MEC ASS MAD", "preco": 232346.0522, "mm": 13500, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220033", "fam": "Graneleiro", "desc": "SR GR 13500 6X2 3E MEC ASS CHAPA", "preco": 242248.9348, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220001", "fam": "Graneleiro", "desc": "SR GR 13500 6X2 4E (MISTA 1+3) ASS MAD", "preco": 303690.3242, "mm": 13500, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220003", "fam": "Graneleiro", "desc": "SR GR 13500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 318683.4156, "mm": 13500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0216091", "fam": "Graneleiro", "desc": "SR GR 14000 6X2 3E MEC ASS CHAPA", "preco": 252935.1146, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0235023", "fam": "Graneleiro", "desc": "SR GR 14000 6X2 3E MEC ASS CHAPA 04 ENG (1X40\")", "preco": 259218.7971, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220037", "fam": "Graneleiro", "desc": "SR GR 14000 6x2 3E MEC ASS CHAPA 12 ENG (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 266338.5948, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220009", "fam": "Graneleiro", "desc": "SR GR 14000 6X2 4E (MISTA 1+3) 4 ENG ASS CHAPA (1X40\")", "preco": 330980.7112, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220005", "fam": "Graneleiro", "desc": "SR GR 14000 6X2 4E (MISTA 1+3) ASS MAD", "preco": 312111.5016, "mm": 14000, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220007", "fam": "Graneleiro", "desc": "SR GR 14000 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 326748.9902, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220011", "fam": "Graneleiro", "desc": "SR GR 14000 6X2 4E (MISTA 1+3) 12 ENG ASS CHAPA (1X40\" - 2X20\" - 1X20\" CENTRAL)", "preco": 339251.2021, "mm": 14000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220013", "fam": "Graneleiro", "desc": "SR GR 14500 6X2 4E (MISTA 1+3)  ASS MAD", "preco": 318970.8199, "mm": 14500, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220015", "fam": "Graneleiro", "desc": "SR GR 14500 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 332865.5735, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0231492", "fam": "Graneleiro", "desc": "SR GR 14500 6X2 4E 100% PN 1+3) ASS CHAPA", "preco": 388337.1986, "mm": 14500, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0205949", "fam": "Graneleiro", "desc": "SR GR 14750 6X2 4E (MISTA 1+3)  ASS MAD", "preco": 316446.8724, "mm": 14750, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220019", "fam": "Graneleiro", "desc": "SR GR 14750 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 328653.4432, "mm": 14750, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220021", "fam": "Graneleiro", "desc": "SR GR 15000 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 334899.6107, "mm": 15000, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220041", "fam": "Graneleiro", "desc": "SR GR 15400 6X2 3E MEC ASS CHAPA", "preco": 265486.89, "mm": 15400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0211111", "fam": "Graneleiro", "desc": "SR GR 15400 6X2 3E MEC ASS MAD", "preco": 251184.4655, "mm": 15400, "assoalho": "Assoalho 22 mm"}, {"cod": "G0225584", "fam": "Graneleiro", "desc": "SR GR 15400 6X2 4E (MISTA 1+3) ASS CHAPA", "preco": 339685.7026, "mm": 15400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0225165", "fam": "Graneleiro", "desc": "SR GR 15400 6X2 4E (MISTA 1+3) ASS CHAPA C/SUPORTE DE TAMPAS", "preco": 337165.4931, "mm": 15400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220071/G0220073", "fam": "Graneleiro", "desc": "CONJ. BT GR 2E 7100+7100 6X2 ASS MAD", "preco": 323148.8268, "mm": 14200, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220079/G0220081", "fam": "Graneleiro", "desc": "CONJ. BT GR 2E 7540+7540 6X2 ASS MAD", "preco": 332259.2369, "mm": 15080, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220083/G0220085", "fam": "Graneleiro", "desc": "CONJ. BT GR 2E 7540+7540 6X2 ASS CHAPA", "preco": 353405.3722, "mm": 15080, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220075/G0220077", "fam": "Graneleiro", "desc": "CONJ. BT GR 2E 7100+7100 6X2 ASS CHAPA", "preco": 349354.7602, "mm": 14200, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220087/G0220089", "fam": "Graneleiro", "desc": "CONJ. BT GR 3E 9350+11400 6X2 ASS MAD", "preco": 417413.701, "mm": 20750, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220091/G0220093", "fam": "Graneleiro", "desc": "CONJ. BT GR 3E 9350+11400 6X2 ASS CHAPA", "preco": 442748.0432, "mm": 20750, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220134/G0220751", "fam": "Graneleiro", "desc": "CONJ. BT GR 3E 8300+12430 6X2 ASS CHAPA", "preco": 458393.8292, "mm": 20730, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220091/G0220097", "fam": "Graneleiro", "desc": "CONJ. BT GR 3E 9350+12430 6X2 ASS CHAPA", "preco": 455126.9625, "mm": 21780, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0207539/G0207541", "fam": "Graneleiro", "desc": "CONJ. BT GR 3E 9350+12430 6X2 ASS CHAPA [04 ENG 1X40\" + 12 ENG 1X40\" - 2X20\" - 1X20\" CENTRAL]", "preco": 470888.6781, "mm": 21780, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220095/G0220097", "fam": "Graneleiro", "desc": "CONJ. BT GR 3E 12430+12430 6X2 ASS CHAPA", "preco": 486390.2776, "mm": 21780, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220051/G0220053/D0221690", "fam": "Graneleiro", "desc": "CONJ. RDT GR 2E 9350+9350 6X2 ASS MAD C/ 5ª RODA [3 TAMPAS]", "preco": 468708.8542, "mm": 18700, "assoalho": "Assoalho 18 mm"}, {"cod": "G0220065/G0220067/D0221699", "fam": "Graneleiro", "desc": "CONJ. RDT GR 2E 9350+9350 6X2 ASS MAD C/ ENG. ESFÉRICO [3 TAMPAS]", "preco": 471316.4987, "mm": 18700, "assoalho": "Assoalho 18 mm"}, {"cod": "G0220043/G0220045/D0221690", "fam": "Graneleiro", "desc": "CONJ. RDT GR 2E 9425+9425 6X2 ASS MAD C/ 5ª RODA [4 TAMPAS]", "preco": 478863.0476, "mm": 18850, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220047/G0220049/D0221690", "fam": "Graneleiro", "desc": "CONJ. RDT GR 2E 9425+9425 6X2 ASS CHAPA C/ 5ª RODA [4 TAMPAS]", "preco": 499589.7459, "mm": 18850, "assoalho": "Assoalho 3,00 mm"}, {"cod": "G0220055/G0220057/D0221690", "fam": "Graneleiro", "desc": "CONJ. RDT GR 2E 10300+10300 6X2 ASS MAD C/ 5ª RODA [4 TAMPAS]", "preco": 498982.5218, "mm": 20600, "assoalho": "Assoalho 22 mm"}, {"cod": "G0220059/G0220061/D0221690", "fam": "Graneleiro", "desc": "CONJ. RDT GR 2E 10300+10300 6X2 ASS CHAPA C/ 5ª RODA [4 TAMPAS]", "preco": 528986.4443, "mm": 20600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "F0209544", "fam": "Furgão", "desc": "SR FG CG PL 14600 6X2 4E  (MISTA 1+3)", "preco": 351319.1336, "mm": 14600, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0211457", "fam": "Furgão", "desc": "SR FG CG PL 14800 4x2 3E MEC", "preco": 272681.3246, "mm": 14800, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0211907", "fam": "Furgão", "desc": "SR FG CG PL 14800 6x2 3E MEC", "preco": 272004.4192, "mm": 14800, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0205337", "fam": "Furgão", "desc": "SR FG CG PL 15000 6X2 3E MEC", "preco": 274411.5961, "mm": 15000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0212556", "fam": "Furgão", "desc": "SR FG CG PL 15400 4X2 2E MEC", "preco": 249277.1946, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0225300", "fam": "Furgão", "desc": "SR FG CG REB 15400 4x2 2E MEC", "preco": 282701.2066, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0212677", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 2E MEC", "preco": 252962.5804, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0212526", "fam": "Furgão", "desc": "SR FG CG PL 15400 4X2 2E (100% PN 1+1)", "preco": 283895.5104, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0233701", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 2E (100% PN 1+1)", "preco": 285892.754, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0207433", "fam": "Furgão", "desc": "SR FG CG PL 15400 4X2 3E MEC", "preco": 277926.5462, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0205740", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 3E MEC", "preco": 277070.0379, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0238452", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 3E MEC 15400 REFORÇADO (Rebit. dupla emendas das chapas, 4 vergalhões na lateral, 3 vergalhões no teto, revestimento interno total em compensado)", "preco": 302009.9225, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0215958", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 3E MEC CHAPA LISA", "preco": 287282.9883, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0209707", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 3E 100% PNEU", "preco": 327217.5658, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0205935", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 4E (MISTA 1+3)", "preco": 358797.5404, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0214915", "fam": "Furgão", "desc": "SR FG CG PL 15400 6X2 4E (MISTA 1+3) (CX CHAPA LISA BRANCA)", "preco": 375709.6582, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0239520", "fam": "Furgão", "desc": "SR FG CG PL 16400 4X2 2E (100% PN 1+1)", "preco": 306634.0053, "mm": 16400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0203312/F0206381", "fam": "Furgão", "desc": "CONJ. BT FG 2E 12500+12500 6X4 DIANT DESL", "preco": 532505.8096, "mm": 25000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0234767/F0235445", "fam": "Furgão", "desc": "CONJ. BT FG 2E 12500+13500 4X2 REBAIXADO DIANT DESL", "preco": 591100.6293, "mm": 26000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0212561/F0200660", "fam": "Furgão", "desc": "CONJ. BT FG 3E 10500+12500 6X4 DIANT DESL", "preco": 552072.5299, "mm": 23000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0212561/F0206734", "fam": "Furgão", "desc": "CONJ. BT FG 3E 10500+12700 6X4 DIANT DESL", "preco": 548269.3219, "mm": 23200, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0210108/F0210768", "fam": "Furgão", "desc": "CONJ. BT FG 3E 10700+15150 6X4 DIANT DESL", "preco": 571633.3071, "mm": 25850, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0200410/F0200660", "fam": "Furgão", "desc": "CONJ. BT FG 3E 12500+12500 6X4 DIANT DESL", "preco": 575020.2005, "mm": 25000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "F0206564/F0206734", "fam": "Furgão", "desc": "CONJ. BT FG 3E 12700+12700 6X4 DIANT DESL", "preco": 567809.4516, "mm": 25400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0208549", "fam": "Sider", "desc": "SR SD PL 14600 6X2 3E MEC", "preco": 245917.4029, "mm": 14600, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0231336", "fam": "Sider", "desc": "SR SD PL 14600 6X2 3E 100% PNEU", "preco": 293648.379, "mm": 14600, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0226432", "fam": "Sider", "desc": "SR SD PL 14600 6X2 4E (MISTA 1+3)", "preco": 321225.0356, "mm": 14600, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0218721", "fam": "Sider", "desc": "SR SD PL 14800 4X2 3E MEC", "preco": 253969.4227, "mm": 14800, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0217738", "fam": "Sider", "desc": "SR SD PL 14800 6X2 3E MEC", "preco": 248530.503, "mm": 14800, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0222685", "fam": "Sider", "desc": "SR SD REB 15100 6X2 3E PN KLL (100% PNEUMATICO)", "preco": 340692.0288, "mm": 15100, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0226304", "fam": "Sider", "desc": "SR SD PL 15200 6X2 3E MEC", "preco": 256651.4223, "mm": 15200, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0216675", "fam": "Sider", "desc": "SR SD PL 15400 4X2 2E MEC", "preco": 247239.5162, "mm": 15200, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0217364", "fam": "Sider", "desc": "SR SD PL 15400 4X2 2E (MISTA 1+1)", "preco": 248631.9391, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0239709", "fam": "Sider", "desc": "SR SD PL 15400 6X2 2E (MISTA 1+1)", "preco": 246181.315, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0222390", "fam": "Sider", "desc": "SR SD PL 15400 6X2 2E D PN VDL (100% PN 1+1)", "preco": 276455.3881, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0221023", "fam": "Sider", "desc": "SR SD PL 15400 4X2 3E (MISTA 1+2)", "preco": 305502.3647, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0217647", "fam": "Sider", "desc": "SR SD PL 15400 4X2 3E MEC", "preco": 255342.545, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0203422", "fam": "Sider", "desc": "SR SD PL 15400 6X2 3E MEC", "preco": 254767.958, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0229804", "fam": "Sider", "desc": "SR SD PL 15400 4X2 3E PN (100% PNEUMATICO)", "preco": 307525.5205, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0225025", "fam": "Sider", "desc": "SR SD PL 15400 4X2 3E (MISTA 1+1+1)", "preco": 317383.7032, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0225390", "fam": "Sider", "desc": "SR SD PL 15400 6X2 3E (MISTA 1+1+1)", "preco": 317054.6857, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0208551", "fam": "Sider", "desc": "SR SD PL 15400 6X2 4E (MISTA 1+3)", "preco": 331987.6703, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0223414", "fam": "Sider", "desc": "SR SD PL 15400 6X2 4E (100% PN 1+3)", "preco": 376430.1662, "mm": 15400, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0220433/S0221825", "fam": "Sider", "desc": "CONJ. BT SD 2E 12500+12500 DIANT. DESLIZANTE", "preco": 481990.6272, "mm": 25000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0234838/S0234806", "fam": "Sider", "desc": "CONJ. BT SD 2E 12500+13500 REBAIXADO DIANT. DESLIZANTE", "preco": 526296.4949, "mm": 26000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0208550/S0209446", "fam": "Sider", "desc": "CONJ. BT SD 3E 12500+12500 DIANT. DESLIZANTE", "preco": 528505.8504, "mm": 25000, "assoalho": "Assoalho 4,75 mm"}, {"cod": "S0235868", "fam": "Sider", "desc": "SR SD PL 15400 6X2 3E D (MISTA 1+1+1) ASA DELTA", "preco": 377559.7246, "mm": 15400, "assoalho": "Assoalho 3,00 mm"}, {"cod": "S0215310", "fam": "Sider", "desc": "SR SIDER 15600 6X2 4E (MISTA 1+3) ASA DELTA", "preco": 373215.4724, "mm": 15600, "assoalho": "Assoalho 3,00 mm"}, {"cod": "S0215343/S0215944", "fam": "Sider", "desc": "CONJ. BT SD BB 3E 9860+13230 ASA DELTA - AMBEV", "preco": 518099.5956, "mm": 23060, "assoalho": "Assoalho 3,00 mm"}, {"cod": "S0223695/S0223910", "fam": "Sider", "desc": "CONJ. BT SD BB 3E 9860+14300 ASA DELTA - COCA COLA", "preco": 540184.1087, "mm": 24160, "assoalho": "Assoalho 3,00 mm"}, {"cod": "T0224447LD", "fam": "Tanque", "desc": "SR TQ CIL 30.000 06C (5x5x5x5x5x5) 6X2 3E MEC BOTTOM LD", "preco": 345159.8298, "mm": 11944, "assoalho": "Padrão"}, {"cod": "T02244472L", "fam": "Tanque", "desc": "SR TQ CIL 30.000 06C (5x5x5x5x5x5) 6X2 3E MEC BOTTOM 2 LADOS", "preco": 354248.3643, "mm": 11944, "assoalho": "Padrão"}, {"cod": "T0224447TOP", "fam": "Tanque", "desc": "SR TQ CIL 30.000 06C (5x5x5x5x5x5) 6X2 3E MEC TOP LOADING", "preco": 319270.0509, "mm": 11944, "assoalho": "Padrão"}, {"cod": "T0230578LD", "fam": "Tanque", "desc": "SR TQ CIL 39.000 07C (9+5+5+5+5+5+5) 6X2 3E BOTTOM LD (20kpa)", "preco": 361059.6138, "mm": 11828, "assoalho": "Padrão"}, {"cod": "T0236984LD", "fam": "Tanque", "desc": "SR TQ CIL 50.000L ÚNICO 6X2 4E (MISTA 1+3) BOTTOM LADO DIREITO (20kpa)", "preco": 353011.1047, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T02369842L", "fam": "Tanque", "desc": "SR TQ CIL 50.000L ÚNICO 6X2 4E (MISTA 1+3) BOTTOM 2 LADOS (20kpa)", "preco": 354127.9504, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0236984TOP", "fam": "Tanque", "desc": "SR TQ CIL 50.000L ÚNICO 6X2 4E (MISTA 1+3) TOP (20kpa)", "preco": 336604.281, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0237192LD", "fam": "Tanque", "desc": "SR TQ CIL 50.000L ÚNICO 6X2 4E (MISTA 1+3) BOTTOM LADO DIREITO (175kpa)", "preco": 360768.3378, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T02371922L", "fam": "Tanque", "desc": "SR TQ CIL 50.000L ÚNICO 6X2 4E (MISTA 1+3) BOTTOM 2 LADOS (175kpa)", "preco": 361885.1835, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0237192TOP", "fam": "Tanque", "desc": "SR TQ CIL 50.000L ÚNICO 6X2 4E (MISTA 1+3) TOP (175kpa)", "preco": 350360.6305, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0236835LD", "fam": "Tanque", "desc": "SR TQ CIL 50.000L 05C (10+10+10+10+10) 6X2 4E (MISTA 1+3) BOTTOM LD (20Kpa)", "preco": 418265.0825, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T02368352L", "fam": "Tanque", "desc": "SR TQ CIL 50.000L 05C (10+10+10+10+10) 6X2 4E (MISTA 1+3) BOTTOM 2 LADOS (20Kpa)", "preco": 426131.5611, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0236835TOP", "fam": "Tanque", "desc": "SR TQ CIL 50.000L 05C (10+10+10+10+10) 6X2 4E (MISTA 1+3) TOP LOADING (20Kpa)", "preco": 391744.0429, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0234011LD", "fam": "Tanque", "desc": "SR TQ CIL 50.000L 08C(10+6+6+8+5+5+5+5) 6X2 4E (MISTA 1+3) BOTTOM LADO DIREITO (20Kpa)", "preco": 476863.0979, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T02340112L", "fam": "Tanque", "desc": "SR TQ CIL 50.000L 08C(10+6+6+8+5+5+5+5) 6X2 4E (MISTA 1+3) BOTTOM 2 LADOS (20Kpa)", "preco": 483742.2201, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0234011TOP", "fam": "Tanque", "desc": "SR TQ CIL 50.000L 08C(10+6+6+8+5+5+5+5) 6X2 4E (MISTA 1+3) TOP LOADING (20Kpa)", "preco": 431064.3298, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0230591LD/T0233123LD", "fam": "Tanque", "desc": "CONJ. BT TQ CIL 3E 26000+36000 UNICO 6X4 BOTTOM LD", "preco": 499725.2542, "mm": 23000, "assoalho": "Padrão"}, {"cod": "T02305912L/T02331232L", "fam": "Tanque", "desc": "CONJ. BT TQ CIL 3E 26000+36000 UNICO 6X4 BOTTOM 2 LADOS", "preco": 501400.5228, "mm": 23000, "assoalho": "Padrão"}, {"cod": "T0230591TOP/T0233123TOP", "fam": "Tanque", "desc": "CONJ. BT TQ CIL 3E 26000+36000 UNICO 6X4 TOP LOADING", "preco": 483781.8768, "mm": 23000, "assoalho": "Padrão"}, {"cod": "T0219695", "fam": "Tanque", "desc": "SR TQ CIL 50.000L UNICO 6X2 4E (MISTA 1+3) INOX BOTTOM 2 LADOS", "preco": 567131.7211, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0232376", "fam": "Tanque", "desc": "SR TQ CIL 55.000L ÚNICO 6X2 4E (MISTA 1+3) INOX - BOTTOM 2 LADOS", "preco": 598848.6015, "mm": 14000, "assoalho": "Padrão"}, {"cod": "T0000003/T0000004", "fam": "Tanque", "desc": "CONJ. BT TQ CIL 3E 26000+37000 UNICO 6X4 BOTTOM 2 LADOS - INOX - AGUARDANDO PROJETO", "preco": 790406.9789, "mm": 23000, "assoalho": "Padrão"}, {"cod": "C0211263", "fam": "Porta Container", "desc": "SR PC 7500 6X2 2E MEC 04 ENG (1X20\")", "preco": 109342.6748, "mm": 7400, "assoalho": "Padrão"}, {"cod": "C0234221", "fam": "Porta Container", "desc": "SR PC 7500 6X2 3E MEC 04 ENG (1X20\") JOST", "preco": 136762.8719, "mm": 7500, "assoalho": "Padrão"}, {"cod": "C0205583", "fam": "Porta Container", "desc": "SR PC 7500 6X2 3E MEC 04 ENG (1X20\")", "preco": 127101.3651, "mm": 7500, "assoalho": "Padrão"}, {"cod": "C0205413", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E MEC 04 ENG (1X40\")", "preco": 152659.4464, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0215682", "fam": "Porta Container", "desc": "SR PC 12400 4X2 2E MEC 08 ENG (1X40\"/2X20\")", "preco": 138130.8476, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0205669", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E MEC 08 ENG SEM TRAVA X (1X40\"/2X20\")", "preco": 165230.1826, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0205639", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E MEC 08 ENG COM TRAVA X (1X40\"/2X20\")", "preco": 169295.6885, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0211699", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E MEC 12 ENG COM TRAVA X (1X40\"/1x20\"/2X20\") JOST", "preco": 178934.5538, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0205141", "fam": "Porta Container", "desc": "SR PC 12400 4X2 3E MEC 12 ENG COM TRAVA X (1X40\"/1x20\"/2X20\")", "preco": 165485.5923, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0205552", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E MEC 12 ENG COM TRAVA X (1X40\"/1x20\"/2X20\")", "preco": 166619.0015, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0203868", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E MEC 12 ENG COM TRAVA X E PLAT. ELEV. (1X40\"/1x20\"/2X20\")", "preco": 187305.4542, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0230377", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E (1E PN) 12 ENG JOST COM TRAVA X (1X40\"/1x20\"/2X20\")", "preco": 189850.4127, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0227933", "fam": "Porta Container", "desc": "SR PC 12400 6X2 3E PN 12 ENG COM TRAVA X (1X40\"/1x20\"/2X20\")", "preco": 205515.8012, "mm": 12400, "assoalho": "Padrão"}, {"cod": "C0206069/C0233678", "fam": "Porta Container", "desc": "CONJ. BT PC 3E 9300+12400 [4ENG- 1X20]+[12ENG - 1X40/1x20/2X20]", "preco": 311547.9817, "mm": 21700, "assoalho": "Padrão"}, {"cod": "C0209893/C0210065", "fam": "Porta Container", "desc": "CONJ. BT PC 3E 12400+12400 DESL COM PLAT. ELEV. [12ENG - 1X40/1x20/2X20]+[12ENG - 1X40/1x20/2X20]", "preco": 422317.7161, "mm": 24800, "assoalho": "Padrão"}, {"cod": "C0233676/C0233678", "fam": "Porta Container", "desc": "CONJ. BT PC 3E 12400+12400 DIANT. DESLIZANTE [12ENG - 1X40/1x20/2X20]+[12ENG - 1X40/1x20/2X20]", "preco": 382668.0758, "mm": 24800, "assoalho": "Padrão"}, {"cod": "C0214492/C0214508", "fam": "Porta Container", "desc": "CONJ. BT PC 3E 12400+12400 DIANT DESL [4ENG- 1X40]+[4ENG- 1X40]", "preco": 354505.4744, "mm": 24800, "assoalho": "Padrão"}], "op": [{"fam": "Basculante", "desc": "Sem vinilona padrão (Decrescer)", "un": "M/Linear", "valor": -308.0861}, {"fam": "Basculante", "desc": "Logomarca do cliente na lona (Acrescer)", "un": "M/Linear", "valor": 186.64}, {"fam": "Basculante", "desc": "Lona Fácil Mecânica para Basculante (Acrescer)", "un": "M/Linear", "valor": 2123.8429}, {"fam": "Basculante", "desc": "Tampa porteira articulação lateral e superior [SR 35M³, 45M³, 50M³ e 55M³] (Acrescer)", "un": "P/Produto", "valor": 3070.8306}, {"fam": "Basculante", "desc": "Porta Estepe Lateral Basculante (Somente para Bitrem Traseiro)", "un": "P/Produto", "valor": -32.4882}, {"fam": "Basculante", "desc": "Comando hibráulico sem tomada de força, sem óleo e sem montagem (HYVA ou HIDROMAS)", "un": "P/Produto", "valor": 21959.028}, {"fam": "Basculante", "desc": "Comando hibráulico sem tomada de força, com óleo e montagem (HYVA ou HIDROMAS)", "un": "P/Produto", "valor": 42461.1464}, {"fam": "Basculante", "desc": "Inclinometro com instalação [SR] (Acrescer)", "un": "P/Produto", "valor": 12176.8313}, {"fam": "Basculante", "desc": "Inclinometro com instalação [BT/RT] (Acrescer)", "un": "P/Produto", "valor": 24353.6626}, {"fam": "Basculante", "desc": "Suporte Porta Calço [SR] (Acrescer)", "un": "P/Produto", "valor": 109.8379}, {"fam": "Basculante", "desc": "Suporte Porta Calço [BT/RT] (Acrescer)", "un": "P/Produto", "valor": 219.6759}, {"fam": "Basculante", "desc": "Suporte Fixador Pá e Enxada [SR] (Acrescer)", "un": "P/Produto", "valor": 51.8996}, {"fam": "Basculante", "desc": "Suporte Fixador Pá e Enxada [BT/RT] (Acrescer)", "un": "P/Produto", "valor": 103.7992}, {"fam": "Basculante", "desc": "Kit 02 Suportes para Extintores (Sem Extintor) [SR] (Acrescer)", "un": "P/Produto", "valor": 149.0276}, {"fam": "Basculante", "desc": "Kit 02 Suportes para Extintores (Sem Extintor) [BT/RT] (Acrescer)", "un": "P/Produto", "valor": 298.0552}, {"fam": "Basculante", "desc": "Kit  02 Suportes para Extintores (Com Extintor) [SR] (Acrescer)", "un": "P/Produto", "valor": 1895.3561}, {"fam": "Basculante", "desc": "Kit  02 Suportes para Extintores (Com Extintor) [BT/RT] (Acrescer)", "un": "P/Produto", "valor": 3790.7122}, {"fam": "Basculante", "desc": "Suporte para Placas de Produtos Perigosos (Acrescer)", "un": "P/Produto", "valor": 337.5468}, {"fam": "Basculante", "desc": "Kit Minério(Vergalhão na tampa, rampa interna e proteção sobre paralama [SR 20M³,25M³ e 30M³] (Acrescer)", "un": "P/Produto", "valor": 3411.8092}, {"fam": "Basculante", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1311.0775}, {"fam": "Basculante", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1311.0775}, {"fam": "Basculante", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -3005.1465}, {"fam": "Basculante", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1226.276}, {"fam": "Basculante", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -232.0915}, {"fam": "Basculante", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 161.823}, {"fam": "Basculante", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 686.2599}, {"fam": "Basculante", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 902.4744}, {"fam": "Basculante", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2304.733}, {"fam": "Basculante", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 9335.9423}, {"fam": "Basculante", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4667.9712}, {"fam": "Basculante", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 10087.4589}, {"fam": "Carrega Tudo", "desc": "Sem Rampa Eletrohidráulica 2.500mm (Decrescer)", "un": "P/Produto", "valor": -37898.0779}, {"fam": "Carrega Tudo", "desc": "Rampa eletrohidráulica 3.000mm (Acrescer)", "un": "P/Produto", "valor": 1117.9297}, {"fam": "Carrega Tudo", "desc": "Pino Rei 3.1/2\"( 8 parafusos)  (Acrescer)", "un": "P/Produto", "valor": 1523.6507}, {"fam": "Carrega Tudo", "desc": "Kit Alargador 100mm com madeira [CT 2E] (suporte madeiras + madeiras) (REB, PL E AGR)", "un": "P/Produto", "valor": 8757.7127}, {"fam": "Carrega Tudo", "desc": "Kit Alargador 200mm com madeira [CT 2E] (suporte madeiras + madeiras)  (REB, PL E AGR)", "un": "P/Produto", "valor": 10521.2367}, {"fam": "Carrega Tudo", "desc": "Kit Alargador 100mm com madeira [CT 3E] (suporte madeiras + madeiras)  (REB, PL E AGR)", "un": "P/Produto", "valor": 13171.1689}, {"fam": "Carrega Tudo", "desc": "Kit Alargador 200mm com madeira [CT 3E] (suporte madeiras + madeiras)  (REB, PL E AGR)", "un": "P/Produto", "valor": 14465.0701}, {"fam": "Carrega Tudo", "desc": "Kit Alargador 100mm com madeira [CT 4E] (suporte madeiras + madeiras)  (REB, PL E AGR)", "un": "P/Produto", "valor": 12445.1782}, {"fam": "Carrega Tudo", "desc": "Kit Alargador 200mm com madeira [CT 4E] (suporte madeiras + madeiras)  (REB, PL E AGR)", "un": "P/Produto", "valor": 15306.23}, {"fam": "Carrega Tudo", "desc": "Plataforma NAJA 3.000mm de comp. Útil", "un": "P/Produto", "valor": 13789.6085}, {"fam": "Carrega Tudo", "desc": "Plataforma NAJA 4.000mm de comp. Útil [CT AGR.]", "un": "P/Produto", "valor": 15294.6582}, {"fam": "Carrega Tudo", "desc": "Plataforma Parabólica Móvel c/ Kit Hidráulico para 40 pés [CT AGR. 3E e 4E]", "un": "P/Produto", "valor": 51645.4105}, {"fam": "Carrega Tudo", "desc": "Plataforma Parabólica Móvel s/ Kit Hidráulico para 40 pés [CT AGR. 3E e 4E]", "un": "P/Produto", "valor": 21484.3645}, {"fam": "Carrega Tudo", "desc": "Sem Kit Fechamento de Roda [CT- PD - 3E]", "un": "P/Produto", "valor": -15174.1465}, {"fam": "Carrega Tudo", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1160.9475}, {"fam": "Carrega Tudo", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1160.9475}, {"fam": "Carrega Tudo", "desc": "Sem Caixa de Ferramentas Plástica (Decrescer)", "un": "P/Produto", "valor": -620.017}, {"fam": "Carrega Tudo", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1085.8565}, {"fam": "Carrega Tudo", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -205.515}, {"fam": "Carrega Tudo", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 143.2928}, {"fam": "Carrega Tudo", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 607.6771}, {"fam": "Carrega Tudo", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 799.1331}, {"fam": "Carrega Tudo", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2040.8206}, {"fam": "Carrega Tudo", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 8266.894}, {"fam": "Carrega Tudo", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4133.447}, {"fam": "Carrega Tudo", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 8932.3552}, {"fam": "Florestal", "desc": "Painel frontal Misto [perfurado e gradeado] (Acrescer)", "un": "P/Produto", "valor": 312.3355}, {"fam": "Florestal", "desc": "Catraca automática[Kit 2 unidades - 1 Kit por pacote] (Acrescer)", "un": "Unidade", "valor": 10698.2207}, {"fam": "Florestal", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1067.2589}, {"fam": "Florestal", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1067.2589}, {"fam": "Florestal", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2446.2851}, {"fam": "Florestal", "desc": "Sem Caixa de Ferramentas Plástica (Decrescer)", "un": "P/Produto", "valor": -569.9816}, {"fam": "Florestal", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 998.2278}, {"fam": "Florestal", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -188.9299}, {"fam": "Florestal", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 131.7291}, {"fam": "Florestal", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 558.6375}, {"fam": "Florestal", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 734.643}, {"fam": "Florestal", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 1876.1262}, {"fam": "Florestal", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 7599.7549}, {"fam": "Florestal", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 3799.8775}, {"fam": "Florestal", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 8211.5134}, {"fam": "Bobineiro", "desc": "Arco de Enlonar (Acrescer) [3 arcos por tampa]", "un": "Unidade", "valor": 302.4121}, {"fam": "Bobineiro", "desc": "Arco e lona (Acrescer)", "un": "M/Linear", "valor": 449.2892}, {"fam": "Bobineiro", "desc": "Logomarca do cliente na lona (Acrescer)", "un": "M/Linear", "valor": 186.64}, {"fam": "Bobineiro", "desc": "Sem Caixa de carga [APENAS PARA CARGA SECA]", "un": "M/Linear", "valor": -1180.4406}, {"fam": "Bobineiro", "desc": "Laterais em ACM: 0,8 (Acrescer) [APENAS PARA CARGA SECA]", "un": "M/Linear", "valor": 193.8173}, {"fam": "Bobineiro", "desc": "Laterais em ACM: 1,0 (Acrescer) [APENAS PARA CARGA SECA]", "un": "M/Linear", "valor": 534.9639}, {"fam": "Bobineiro", "desc": "Laterais em ACM: 0,8+0,8 (Decrescer) [APENAS PARA GRANELEIRO]", "un": "M/Linear", "valor": -351.4971}, {"fam": "Bobineiro", "desc": "Laterais em ACM: 1,0+1,0 (Acrescer) [APENAS PARA GRANELEIRO]", "un": "M/Linear", "valor": 382.6197}, {"fam": "Bobineiro", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1226.4986}, {"fam": "Bobineiro", "desc": "Assoalho Chapa 3,00mm para Chapa 4,75mm (Acrescer)", "un": "M/Linear", "valor": 455.8976}, {"fam": "Bobineiro", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1226.4986}, {"fam": "Bobineiro", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2811.2814}, {"fam": "Bobineiro", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1147.1677}, {"fam": "Bobineiro", "desc": "Iluminação Continua (exclusivo para furgão, sider, graneleiro/CS e tanque)", "un": "Unidade", "valor": 2621.7561}, {"fam": "Bobineiro", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -217.1191}, {"fam": "Bobineiro", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 151.3836}, {"fam": "Bobineiro", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 641.9886}, {"fam": "Bobineiro", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 844.2549}, {"fam": "Bobineiro", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2156.0523}, {"fam": "Bobineiro", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 8733.6712}, {"fam": "Bobineiro", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4366.8356}, {"fam": "Bobineiro", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 9436.7067}, {"fam": "Carga Seca", "desc": "Sem Caixa de carga [APENAS PARA CARGA SECA]", "un": "M/Linear", "valor": -1225.8559}, {"fam": "Carga Seca", "desc": "Laterais em ACM: 0,8 (Acrescer) [APENAS PARA CARGA SECA]", "un": "M/Linear", "valor": 201.2741}, {"fam": "Carga Seca", "desc": "Laterais em ACM: 1,0 (Acrescer) [APENAS PARA CARGA SECA]", "un": "M/Linear", "valor": 555.5457}, {"fam": "Carga Seca", "desc": "Assoalho Chapa 3,00mm para Chapa 4,75mm (Acrescer)", "un": "M/Linear", "valor": 473.4375}, {"fam": "Carga Seca", "desc": "KIT 06 Bocas de Escoamento SR", "un": "P/Produto", "valor": 696.5212}, {"fam": "Carga Seca", "desc": "KIT 08 Bocas de Escoamento SR", "un": "P/Produto", "valor": 928.695}, {"fam": "Carga Seca", "desc": "KIT 10 Bocas de Escoamento SR", "un": "P/Produto", "valor": 1160.8687}, {"fam": "Carga Seca", "desc": "KIT 06 Bocas de Escoamento BT ou RT", "un": "P/Produto", "valor": 1393.0424}, {"fam": "Carga Seca", "desc": "KIT 08 Bocas de Escoamento BT ou RT", "un": "P/Produto", "valor": 1857.3899}, {"fam": "Carga Seca", "desc": "KIT 10 Bocas de Escoamento BT ou RT", "un": "P/Produto", "valor": 2321.7374}, {"fam": "Carga Seca", "desc": "Arco de Enlonar (Acrescer) [3 arcos por tampa]", "un": "Unidade", "valor": 314.0469}, {"fam": "Carga Seca", "desc": "Arco e lona (Acrescer)", "un": "M/Linear", "valor": 466.5748}, {"fam": "Carga Seca", "desc": "Logomarca do cliente na lona (Acrescer)", "un": "M/Linear", "valor": 186.64}, {"fam": "Carga Seca", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1273.6859}, {"fam": "Carga Seca", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1273.6859}, {"fam": "Carga Seca", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2919.4404}, {"fam": "Carga Seca", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1191.3029}, {"fam": "Carga Seca", "desc": "Iluminação Continua (exclusivo para furgão, sider, graneleiro/CS e tanque)", "un": "Unidade", "valor": 2621.7561}, {"fam": "Carga Seca", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -225.4723}, {"fam": "Carga Seca", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 157.2078}, {"fam": "Carga Seca", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 666.6879}, {"fam": "Carga Seca", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 876.7361}, {"fam": "Carga Seca", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2239.0025}, {"fam": "Carga Seca", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 9069.6835}, {"fam": "Carga Seca", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4534.8417}, {"fam": "Carga Seca", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 9799.767}, {"fam": "Graneleiro", "desc": "Laterais em ACM: 0,8+0,8 (Decrescer) [APENAS PARA GRANELEIRO]", "un": "M/Linear", "valor": -357.2977}, {"fam": "Graneleiro", "desc": "Laterais em ACM: 1,0+1,0 (Acrescer) [APENAS PARA GRANELEIRO]", "un": "M/Linear", "valor": 388.9339}, {"fam": "Graneleiro", "desc": "Tampa Porteira (Exclusivo para SR GR 14,50 CHAPA)", "un": "P/Produto", "valor": 988.3228}, {"fam": "Graneleiro", "desc": "Logomarca do cliente na lona (Acrescer)", "un": "M/Linear", "valor": 186.64}, {"fam": "Graneleiro", "desc": "Sem Vinilona Sansuy (Decrescer)", "un": "M/Linear", "valor": -292.9674}, {"fam": "Graneleiro", "desc": "De 08 para 06 Bocas de Escoamento SR 12,40m a 13,50m (Decrescer)", "un": "P/Produto", "valor": -227.2617}, {"fam": "Graneleiro", "desc": "De 08 para 10 Bocas de Escoamento SR 12,40m a 13,50m (Acrescer)", "un": "P/Produto", "valor": 227.2617}, {"fam": "Graneleiro", "desc": "De 10 para 08 Bocas de Escoamento SR 14,00m a 15,00m (Decrescer)", "un": "P/Produto", "valor": -227.2617}, {"fam": "Graneleiro", "desc": "De 10 para 06 Bocas de Escoamento SR 14,00m a 15,00m (Decrescer)", "un": "P/Produto", "valor": -454.5235}, {"fam": "Graneleiro", "desc": "De 06 para 08 Bocas de Escoamento BTouRT 07,10m a 11,40m (Acrescer)", "un": "P/Produto", "valor": 1136.3086}, {"fam": "Graneleiro", "desc": "De 08 para 06 Bocas de Escoamento BTouRT 12,40m a 13,50m (Decrescer)", "un": "P/Produto", "valor": -454.5235}, {"fam": "Graneleiro", "desc": "De 08 para 10 Bocas de Escoamento BTouRT 12,40m (Acrescer)", "un": "P/Produto", "valor": 454.5235}, {"fam": "Graneleiro", "desc": "De 08 para 06 Bocas de Escoamento BTouRT 12,40m (Decrescer)", "un": "P/Produto", "valor": -454.5235}, {"fam": "Graneleiro", "desc": "Assoalho chapa 3,00mm para Chapa 4,75mm (Acrescer)", "un": "M/Linear", "valor": 463.4211}, {"fam": "Graneleiro", "desc": "Pontos de Amarração sem cintas (Acrescer)", "un": "P/Produto", "valor": 2357.8804}, {"fam": "Graneleiro", "desc": "Pontos de Amarração com Cintas (Acrescer)", "un": "P/Produto", "valor": 4278.9219}, {"fam": "Graneleiro", "desc": "Pontos de Amarração sem cintas para Bitrenzinho (Acrescer)", "un": "P/Produto", "valor": 2335.8588}, {"fam": "Graneleiro", "desc": "Pontos de Amarração com Cintas para Bitrenzinho(Acrescer)", "un": "P/Produto", "valor": 4257.1102}, {"fam": "Graneleiro", "desc": "Pontos de Amarração sem cintas para Bitrenzão e Rodotrem(Acrescer)", "un": "P/Produto", "valor": 3503.7882}, {"fam": "Graneleiro", "desc": "Pontos de Amarração com Cintas para Bitrenzão e Rodotrem(Acrescer)", "un": "P/Produto", "valor": 6385.6653}, {"fam": "Graneleiro", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1246.739}, {"fam": "Graneleiro", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1246.739}, {"fam": "Graneleiro", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2857.6749}, {"fam": "Graneleiro", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1166.099}, {"fam": "Graneleiro", "desc": "Iluminação Continua (exclusivo para furgão, sider, graneleiro/CS e tanque)", "un": "Unidade", "valor": 2621.7561}, {"fam": "Graneleiro", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -220.7021}, {"fam": "Graneleiro", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 153.8819}, {"fam": "Graneleiro", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 652.5831}, {"fam": "Graneleiro", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 858.1873}, {"fam": "Graneleiro", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2191.6328}, {"fam": "Graneleiro", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 8877.7997}, {"fam": "Graneleiro", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4438.8998}, {"fam": "Graneleiro", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 9592.4371}, {"fam": "Furgão", "desc": "Varão embutido duplo de travamento [SR] (Acrescer)", "un": "P/Produto", "valor": 778.4965}, {"fam": "Furgão", "desc": "Varão embutido duplo de travamento [BT] (Acrescer)", "un": "P/Produto", "valor": 1556.993}, {"fam": "Furgão", "desc": "Porta Roll-UP [SR]  (Acrescer)", "un": "P/Produto", "valor": 10927.482}, {"fam": "Furgão", "desc": "Porta Roll-UP [BT]  (Acrescer)", "un": "P/Produto", "valor": 21854.9641}, {"fam": "Furgão", "desc": "Revestimento em compensado completo [SR] (Acrescer)", "un": "M/Linear", "valor": 120.9842}, {"fam": "Furgão", "desc": "Revestimento em compensado completo [BT] (Acrescer)", "un": "M/Linear", "valor": 120.9842}, {"fam": "Furgão", "desc": "Rodapé Aço Galvanizado com Kit proteção alimentícia [SR] (Acrescer)", "un": "M/Linear", "valor": 129.8624}, {"fam": "Furgão", "desc": "Rodapé Aço Galvanizado com Kit proteção alimentícia [BT] (Acrescer)", "un": "M/Linear", "valor": 129.8624}, {"fam": "Furgão", "desc": "Alumínio Branco corrugado (Acrescer)", "un": "M/Linear", "valor": 650.9707}, {"fam": "Furgão", "desc": "Logomarca Total nas laterais do Furgão (Acrescer)", "un": "M/Linear", "valor": 3085.4377}, {"fam": "Furgão", "desc": "Porta Lateral - LD - Uma Folha na Quinta Chapa (1846 x 988)", "un": "P/Produto", "valor": 3235.7485}, {"fam": "Furgão", "desc": "Porta Lateral - LE - Uma Folha na Quinta Chapa (1846 x 988)", "un": "P/Produto", "valor": 3263.6527}, {"fam": "Furgão", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1442.18}, {"fam": "Furgão", "desc": "Pintura da Frontal e Traseira [SR] (Acrescer)", "un": "P/Produto", "valor": 2801.6325}, {"fam": "Furgão", "desc": "Pintura da Frontal e Traseira [BT] (Acrescer)", "un": "P/Produto", "valor": 5603.2651}, {"fam": "Furgão", "desc": "Logomarca na Porta Traseira - adesivo [SR] (Acrescer)", "un": "P/Produto", "valor": 1798.0406}, {"fam": "Furgão", "desc": "Logomarca na Porta Traseira - adesivo [BT] (Acrescer)", "un": "P/Produto", "valor": 3596.0812}, {"fam": "Furgão", "desc": "Logomarca no Frontal - adesivo [SR] (Acrescer)", "un": "P/Produto", "valor": 1798.0406}, {"fam": "Furgão", "desc": "Logomarca no Frontal - adesivo [BT] (Acrescer)", "un": "P/Produto", "valor": 3596.0812}, {"fam": "Furgão", "desc": "KIT MOPP (3 suportes de placas com 3 placas, suporte de cone e suporte de extintor 8 KG)", "un": "Unidade", "valor": 1150.3359}, {"fam": "Furgão", "desc": "Suporte para Placas de Produtos Perigosos (Acrescer)", "un": "P/Produto", "valor": 343.4677}, {"fam": "Furgão", "desc": "Válvula de Cais (Somente 100% pneumática) (Acrescer)", "un": "P/Produto", "valor": 1035.5505}, {"fam": "Furgão", "desc": "Escada Traseira", "un": "P/Produto", "valor": 1367.6218}, {"fam": "Furgão", "desc": "Revestimento em compensado na frontal [SR]", "un": "P/Produto", "valor": 2662.7543}, {"fam": "Furgão", "desc": "Revestimento em compensado na frontal [BT]", "un": "P/Produto", "valor": 5325.5086}, {"fam": "Furgão", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1334.0751}, {"fam": "Furgão", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -3057.8597}, {"fam": "Furgão", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1247.7861}, {"fam": "Furgão", "desc": "Iluminação Continua (exclusivo para furgão, sider, graneleiro/CS e tanque)", "un": "Unidade", "valor": 2621.7561}, {"fam": "Furgão", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -236.1626}, {"fam": "Furgão", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 164.6615}, {"fam": "Furgão", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 698.2976}, {"fam": "Furgão", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 918.3047}, {"fam": "Furgão", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2345.1602}, {"fam": "Furgão", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 9499.7038}, {"fam": "Furgão", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4749.8519}, {"fam": "Furgão", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 10264.4028}, {"fam": "Sider", "desc": "Porta traseira varão Embutido (Acrescer)", "un": "P/Produto", "valor": 737.5603}, {"fam": "Sider", "desc": "Central Lock [SR]  (Acrescer)", "un": "P/Produto", "valor": 3767.9921}, {"fam": "Sider", "desc": "Central Lock [BT]   (Acrescer)", "un": "P/Produto", "valor": 7535.9842}, {"fam": "Sider", "desc": "Sem Caixa de Mantimentos de madeira (Descrescer)", "un": "P/Produto", "valor": -2904.9832}, {"fam": "Sider", "desc": "Lona Térmica teto (Acrescer)", "un": "M/Linear", "valor": 463.0465}, {"fam": "Sider", "desc": "Lona Térmica lateral (Acrescer)", "un": "M/Linear", "valor": 406.0244}, {"fam": "Sider", "desc": "Pintura da Frontal e Traseira [SR] (Acrescer)", "un": "P/Produto", "valor": 2654.3475}, {"fam": "Sider", "desc": "Pintura da Frontal e Traseira [BT] (Acrescer)", "un": "P/Produto", "valor": 5308.695}, {"fam": "Sider", "desc": "Logomarca na Porta Traseira - adesivo [SR] (Acrescer)", "un": "P/Produto", "valor": 1703.5156}, {"fam": "Sider", "desc": "Logomarca na Porta Traseira - adesivo [BT] (Acrescer)", "un": "P/Produto", "valor": 3407.0311}, {"fam": "Sider", "desc": "Logomarca no Frontal - adesivo [SR] (Acrescer)", "un": "P/Produto", "valor": 1703.5156}, {"fam": "Sider", "desc": "Logomarca no Frontal - adesivo [BT] (Acrescer)", "un": "P/Produto", "valor": 3407.0311}, {"fam": "Sider", "desc": "Lona com Logomarca (Acrescer)", "un": "M/Linear", "valor": 508.8866}, {"fam": "Sider", "desc": "Travessas de contenção de 16 p/ 24 unidades (3 colunas) [SR]", "un": "P/Produto", "valor": 1074.5022}, {"fam": "Sider", "desc": "Travessas de contenção de 16 p/ 24 unidades (3 colunas) [BT]", "un": "P/Produto", "valor": 2149.0044}, {"fam": "Sider", "desc": "Travessas de contenção de 16 P/ 32 unidades (3 colunas) [SR]", "un": "P/Produto", "valor": 2149.0044}, {"fam": "Sider", "desc": "Travessas de contenção de 16 P/ 32 unidades (4 colunas) [SR]", "un": "P/Produto", "valor": 2548.3121}, {"fam": "Sider", "desc": "Travessas de contenção de 16 P/ 32 unidades (4 colunas) [BT]", "un": "P/Produto", "valor": 5096.6241}, {"fam": "Sider", "desc": "Travessas de contenção de 16 P/ 32 unidades (3 colunas) [BT]", "un": "P/Produto", "valor": 4254.2567}, {"fam": "Sider", "desc": "Travessas de contenção de 16 p/ 40 unidades (4 colunas) [SR]", "un": "P/Produto", "valor": 4644.4796}, {"fam": "Sider", "desc": "Travessas de contenção de 16 P/ 40 unidades (4 colunas) [BT]", "un": "P/Produto", "valor": 9288.9591}, {"fam": "Sider", "desc": "Suporte travessa de contenção (Acrescer) [SR]", "un": "P/Produto", "valor": 285.968}, {"fam": "Sider", "desc": "Suporte travessa de contenção (Acrescer) [BT]", "un": "P/Produto", "valor": 571.9359}, {"fam": "Sider", "desc": "Suporte com Cantoneiras (Acrescer) [SR]", "un": "P/Produto", "valor": 3267.2936}, {"fam": "Sider", "desc": "Suporte com Cantoneiras (Acrescer) [BT]", "un": "P/Produto", "valor": 6534.5872}, {"fam": "Sider", "desc": "Linha de Vida – (KIT) [SR]", "un": "P/Produto", "valor": 1679.632}, {"fam": "Sider", "desc": "Linha de Vida – (KIT) [BT]", "un": "P/Produto", "valor": 3359.264}, {"fam": "Sider", "desc": "Trava Pallet lateral 16x16mm [SR] (Acrescer)", "un": "P/Produto", "valor": 960.9723}, {"fam": "Sider", "desc": "Trava Pallet lateral 16x16mm [BT] (Acrescer)", "un": "P/Produto", "valor": 1921.9447}, {"fam": "Sider", "desc": "KIT MOPP (3 suportes de placas com 3 placas, suporte de cone e suporte de extintor 8 KG)", "un": "Unidade", "valor": 1089.8615}, {"fam": "Sider", "desc": "Válvula de Cais (Somente 100% pneumática) (Acrescer)", "un": "P/Produto", "valor": 981.1105}, {"fam": "Sider", "desc": "Escada Traseira", "un": "P/Produto", "valor": 551.3684}, {"fam": "Sider", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1267.3785}, {"fam": "Sider", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2904.9832}, {"fam": "Sider", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1185.4035}, {"fam": "Sider", "desc": "Iluminação Continua (exclusivo para furgão, sider, graneleiro/CS e tanque)", "un": "Unidade", "valor": 2621.7561}, {"fam": "Sider", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -224.3558}, {"fam": "Sider", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 156.4293}, {"fam": "Sider", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 663.3865}, {"fam": "Sider", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 872.3944}, {"fam": "Sider", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2227.9149}, {"fam": "Sider", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 9024.7699}, {"fam": "Sider", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4512.385}, {"fam": "Sider", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 9751.238}, {"fam": "Tanque", "desc": "Visor de passagem de combustível por compartimento (Acrescer)", "un": "P/Compar. E Escoa", "valor": 2677.3031}, {"fam": "Tanque", "desc": "Marcador de combustível por compartimento (Acrescer)", "un": "P/Compar. E Escoa", "valor": 805.5089}, {"fam": "Tanque", "desc": "Porta mangote com mangote duplo (Acrescer)", "un": "P/Produto", "valor": 3041.1074}, {"fam": "Tanque", "desc": "Pintura Caixa de Carga fora do padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1216.7076}, {"fam": "Tanque", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1216.7076}, {"fam": "Tanque", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2788.8393}, {"fam": "Tanque", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1138.01}, {"fam": "Tanque", "desc": "Iluminação Continua (exclusivo para furgão, sider, graneleiro/CS e tanque)", "un": "Unidade", "valor": 2621.7561}, {"fam": "Tanque", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -215.3858}, {"fam": "Tanque", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 150.1752}, {"fam": "Tanque", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 636.8637}, {"fam": "Tanque", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 837.5153}, {"fam": "Tanque", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2138.8408}, {"fam": "Tanque", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 8663.9514}, {"fam": "Tanque", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4331.9757}, {"fam": "Tanque", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 9361.3746}, {"fam": "Porta Container", "desc": "Plataforma na traseira (fixa) - SOB CONSULTA", "un": "P/Produto", "valor": 5313.9329}, {"fam": "Porta Container", "desc": "Pintura da Base fora do Padrão IMKT 0018-24 (Acrescer)", "un": "M/Linear", "valor": 1261.0578}, {"fam": "Porta Container", "desc": "Caixa de Mantimentos de madeira (Decrescer)", "un": "P/Produto", "valor": -2890.4955}, {"fam": "Porta Container", "desc": "Instalação Elétrica Padrão internacional (Acrescer)", "un": "P/Produto", "valor": 1179.4917}, {"fam": "Porta Container", "desc": "Sem Reservatório de Água (Decrescer)", "un": "P/Produto", "valor": -223.2369}, {"fam": "Porta Container", "desc": "Pintura Roda e Cubo (Acrescer)", "un": "Unidade", "valor": 155.6492}, {"fam": "Porta Container", "desc": "Porta Estepe Catraca  (Acrescer)", "un": "P/Produto", "valor": 660.078}, {"fam": "Porta Container", "desc": "KIT MOPP (3 suportes de placas com 3 placas, suporte de cone e suporte de extintor 8 KG)", "un": "Unidade", "valor": 1084.4261}, {"fam": "Porta Container", "desc": "Roda 8.25x22.5 aço (Unidade) EXTRA", "un": "Unidade", "valor": 868.0436}, {"fam": "Porta Container", "desc": "Roda Alumínio Polido 8.25x22.5 (Unidade) EXTRA", "un": "Unidade", "valor": 2216.8038}, {"fam": "Porta Container", "desc": "Sistema EBS P/ 4 eixo", "un": "Unidade", "valor": 8979.7616}, {"fam": "Porta Container", "desc": "Suspensor pneumático  (Acrescer) [por eixo Mecanico] - SOB CONSULTA", "un": "Unidade", "valor": 4489.8808}, {"fam": "Porta Container", "desc": "Suspensor pneumático  (Acrescer) [por eixo Pneumatico] - SOB CONSULTA", "un": "Unidade", "valor": 9702.6066}, {"fam": null, "desc": "Roda Alumínio Polido 8.25x22.5 (Acrescer)", "un": "Unidade", "valor": 1317.2123}, {"fam": null, "desc": "Remonta Padrão", "un": "Unidade", "valor": 1223.4862}, {"fam": null, "desc": "Remonta Porta Container", "un": "Unidade", "valor": 1223.4862}, {"fam": null, "desc": "Montagem Pneus", "un": "Unidade", "valor": 140.0333}, {"fam": "Pneu", "desc": "PNEU BRIDGESTONE 295X80 R22,5 R269", "un": "Unidade", "valor": 4664.9127}, {"fam": "Pneu", "desc": "PNEU FIRESTONE 295X80 R22,5 FS440Z", "un": "Unidade", "valor": 4295.0382}, {"fam": "Pneu", "desc": "PNEU GOODYEAR 295X80 R22,5 KMAX RSA 152/148L H T", "un": "Unidade", "valor": 3765.339}, {"fam": "Pneu", "desc": "PNEU MICHELIN 295X80 R22,5 MULTI Z2", "un": "Unidade", "valor": 5291.7638}, {"fam": "Pneu", "desc": "PNEU 295 //RODOFORT LISO 295/80R22,5 RF10", "un": "Unidade", "valor": 3505.8107}, {"fam": "Pneu", "desc": "PNEU 295 //RODOFORT 295/80R22,5 RF35 COMBATE 14MM", "un": "Unidade", "valor": 2660.6321}]};
+const LOGO=null; /* logo oficial: substituir por data URI quando disponível */
+const ICMS_OPTS=[0,7,12,13.3,17,18,19,19.5,20,20.5,21,22,22.5];
+const LPP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const FAMILIAS=['Basculante','Carrega Tudo','Florestal','Bobineiro','Carga Seca','Graneleiro','Furgão','Sider','Tanque','Porta Container'];
+const $=id=>document.getElementById(id);
+const fmt=v=>(v==null||isNaN(v))?'—':v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const fmtN=(v,d=2)=>v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v};
+
+let opcRows=[]; // {desc, qtd}
+let manRows=[]; // {desc, valor, qtd}
+
+/* ===== Histórico de cotações ===== */
+const novoId=()=>(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));
+let quoteId=novoId();
+let histDocs=[];   // [{id, rec}]
+let dbUnsub=null;
+/* ============================================================
+   CONFIGURAÇÃO DO FIREBASE — cole aqui o objeto do seu projeto
+   (Console do Firebase → Configurações do projeto → Seus apps →
+   App da Web → "Configuração do SDK")
+   ============================================================ */
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyCjrbTh9_yovb2CRtsXNL6fuOEyXnpFvcY",
+  authDomain:"painel-veiculos-4a6f5.firebaseapp.com",
+  projectId:"painel-veiculos-4a6f5",
+  storageBucket:"painel-veiculos-4a6f5.firebasestorage.app",
+  messagingSenderId:"910089422875",
+  appId:"1:910089422875:web:fbca3bf5d3f2bdeea950be"
+};
+let FB=null;
+try{
+  if(FIREBASE_CONFIG.apiKey!=="COLE_AQUI"&&window.firebase){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    FB={auth:firebase.auth(),db:firebase.firestore(),user:null};
+  }
+}catch(e){console.warn('firebase init',e)}
+async function getDb(){ return (FB&&FB.user)?FB.db:null; }
+function sair(){ if(FB)FB.auth.signOut(); }
+function setUser(u){
+  if(!FB)return;
+  FB.user=u;
+  $('loginOverlay').hidden=!!u;
+  $('userChip').hidden=!u;$('btnSair').hidden=!u;
+  if(u){
+    $('userChip').textContent=u.displayName||u.email;
+    if(!$('consultor').value)$('consultor').value=(u.displayName||u.email.split('@')[0]).toUpperCase();
+    iniciarHist();
+  }else if(dbUnsub){dbUnsub();dbUnsub=null;histDocs=[];}
+}
+function initAuth(){
+  if(!FB){ $('loginOverlay').hidden=true; $('histFonte').textContent='Firebase não configurado — histórico salvo somente neste navegador.'; return; }
+  FB.auth.onAuthStateChanged(setUser);
+  $('loginForm').addEventListener('submit',async ev=>{
+    ev.preventDefault();$('loginErro').textContent='';
+    const b=$('btnEntrar');b.disabled=true;b.textContent='Entrando…';
+    try{ await FB.auth.signInWithEmailAndPassword($('loginEmail').value.trim(),$('loginSenha').value); }
+    catch(e){
+      const m={'auth/invalid-credential':'E-mail ou senha incorretos.','auth/wrong-password':'E-mail ou senha incorretos.','auth/user-not-found':'Usuário não cadastrado.','auth/too-many-requests':'Muitas tentativas — aguarde alguns minutos.','auth/network-request-failed':'Sem conexão com a internet.'};
+      $('loginErro').textContent=m[e.code]||'Não foi possível entrar ('+(e.code||'erro')+').';
+    }
+    b.disabled=false;b.textContent='Entrar';
+  });
+}
+function histLS(){try{return JSON.parse(localStorage.getItem('cotacaoHist'))||[]}catch(e){return[]}}
+function histLSSave(a){try{localStorage.setItem('cotacaoHist',JSON.stringify(a.slice(0,300)))}catch(e){}}
+function registro(){
+  const {s,r}=last;
+  return {v:1,savedAt:new Date().toISOString(),
+    consultor:(s.consultor||'').trim(),cliente:(s.cli_nome||'').trim(),pedido:s.pedido||'',
+    familia:s.familia,modelo:s.modelo,qtd:s.qtd,total:r.F67,dist:r.M42,
+    usuario:(FB&&FB.user)?(FB.user.email||''):'',
+    state:{s:{...s,opc:undefined,man:undefined},opc:opcRows,man:manRows}};
+}
+async function salvarCotacao(){
+  recalc();
+  const rec=registro();
+  const db=await getDb();
+  if(db){
+    try{ await db.collection('cotacoes').doc(quoteId).set(rec); return 'db'; }
+    catch(e){ console.warn('db save',e); }
+  }
+  const a=histLS().filter(x=>x.id!==quoteId); a.unshift({id:quoteId,rec}); histLSSave(a);
+  return 'local';
+}
+async function salvarManual(){
+  const btn=$('btnSalvar');if(btn.disabled)return;
+  btn.disabled=true;const txt=btn.textContent;btn.textContent='Salvando…';
+  let onde='local';
+  try{ onde=await salvarCotacao(); }
+  catch(e){ btn.textContent='Erro ao salvar';setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2000);return; }
+  btn.textContent='Salva no histórico ✓';
+  setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2000);
+}
+async function imprimir(){
+  try{ await salvarCotacao(); }catch(e){}
+  window.print();
+}
+async function iniciarHist(){
+  const db=await getDb();
+  if(db){
+    try{
+      dbUnsub=db.collection('cotacoes').orderBy('savedAt','desc').limit(300).onSnapshot(snap=>{
+        histDocs=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,rec:d.data()}));
+        renderHist();
+      },e=>{ console.warn('hist sub',e); histDocs=histLS(); renderHist(); });
+      $('histFonte').textContent='Histórico compartilhado no Firebase — todos os usuários veem as mesmas cotações.';
+      return;
+    }catch(e){}
+  }
+  histDocs=histLS(); $('histFonte').textContent='Histórico salvo somente neste navegador.'; renderHist();
+}
+function abrirHist(){$('histOverlay').hidden=false;renderHist();}
+function fecharHist(){$('histOverlay').hidden=true;}
+function renderHist(){
+  if($('histOverlay').hidden&&!histDocs.length)return;
+  // filtro de consultor
+  const sel=$('fCons');const atual=sel.value;
+  const cons=[...new Set(histDocs.map(h=>h.rec.consultor||''))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">Todos</option>'+cons.map(c=>`<option value="${esc(c)}">${c?esc(c):'(sem consultor)'}</option>`).join('');
+  if([...sel.options].some(o=>o.value===atual))sel.value=atual;
+  const fc=sel.value,fq=$('fCli').value.trim().toLowerCase(),de=$('fDe').value,ate=$('fAte').value;
+  const rows=histDocs.filter(h=>{
+    const r=h.rec;
+    if(fc!==''&&(r.consultor||'')!==fc)return false;
+    if(fq&&!(r.cliente||'').toLowerCase().includes(fq))return false;
+    const d=(r.savedAt||'').slice(0,10);
+    if(de&&d<de)return false;
+    if(ate&&d>ate)return false;
+    return true;
+  });
+  $('histCount').textContent=rows.length+(rows.length===1?' cotação':' cotações')+(rows.length!==histDocs.length?' (de '+histDocs.length+')':'');
+  const tb=$('histBody');tb.innerHTML='';
+  rows.forEach(h=>{
+    const r=h.rec;const tr=document.createElement('tr');tr.className='hist-row';
+    const dt=r.savedAt?new Date(r.savedAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    tr.innerHTML=`<td class="num">${dt}</td>
+      <td>${r.consultor?'<span class="badge-cons">'+esc(r.consultor)+'</span>':'<span class="hint">—</span>'}</td>
+      <td>${esc(r.cliente)||'<span class="hint">—</span>'}</td>
+      <td title="${esc(r.modelo)}">${esc((r.modelo||'').slice(0,42))}${(r.modelo||'').length>42?'…':''}</td>
+      <td class="r">${r.qtd??''}</td><td class="r num">${fmt(r.total)}</td>`;
+    const td=document.createElement('td');td.className='hist-act';
+    const bA=document.createElement('button');bA.textContent='Abrir';bA.addEventListener('click',()=>abrirCotacao(h));
+    const bP=document.createElement('button');bP.textContent='Imprimir';bP.addEventListener('click',()=>{abrirCotacao(h);setTimeout(()=>imprimir(),200);});
+    const bD=document.createElement('button');bD.textContent='Excluir';bD.className='del';bD.addEventListener('click',()=>excluirCotacao(h));
+    td.append(bA,bP,bD);tr.appendChild(td);tb.appendChild(tr);
+  });
+  if(!rows.length){const tr=document.createElement('tr');tr.innerHTML='<td colspan="7" class="hint">Nenhuma cotação encontrada.</td>';tb.appendChild(tr);}
+}
+function abrirCotacao(h){
+  const st=h.rec.state||{};const s=st.s||{};
+  Object.entries(s).forEach(([k,v])=>{const el=document.querySelector(`[data-k="${k}"]`);if(el&&v!=null&&typeof v!=='object')el.value=v;});
+  fillModelos();if(s.modelo)$('modelo').value=s.modelo;
+  opcRows=(st.opc||[]).map(o=>({desc:o.desc,qtd:o.qtd}));
+  manRows=(st.man||[]).map(m=>({desc:m.desc,valor:m.valor,qtd:m.qtd}));
+  quoteId=h.id;
+  renderOpc();renderMan();recalc();fecharHist();
+  window.scrollTo({top:0});
+}
+async function excluirCotacao(h){
+  if(!confirm('Excluir a cotação de '+(h.rec.cliente||'(sem cliente)')+'?'))return;
+  const db=await getDb();
+  if(db){try{await db.collection('cotacoes').doc(h.id).delete();return;}catch(e){console.warn(e);}}
+  histLSSave(histLS().filter(x=>x.id!==h.id));histDocs=histLS();renderHist();
+}
+
+function fill(sel, items, withBlank){
+  sel.innerHTML='';
+  if(withBlank){const o=document.createElement('option');o.value='';o.textContent=withBlank;sel.appendChild(o);}
+  items.forEach(i=>{const o=document.createElement('option');o.value=i;o.textContent=i;sel.appendChild(o);});
+}
+function init(){
+  fill($('icms'),ICMS_OPTS.map(String));$('icms').value='12';
+  $('icms').querySelectorAll('option').forEach(o=>o.textContent=fmtN(parseFloat(o.value),2).replace(',00',''));
+  fill($('lpp'),LPP.map(m=>'LPP '+m));$('lpp').value='LPP '+LPP[new Date().getMonth()];
+  fill($('familia'),FAMILIAS);$('familia').value='Basculante';
+  fill($('remonta'),BASE.op.filter(o=>/^Remonta/.test(o.desc)).map(o=>o.desc),'— sem remonta');
+  fill($('montagem'),BASE.op.filter(o=>/^Montagem Pneus/.test(o.desc)).map(o=>o.desc),'— sem montagem');
+  fill($('rodas'),BASE.op.filter(o=>!o.fam&&/^Roda/.test(o.desc)).map(o=>o.desc),'— roda padrão (aço)');
+  fill($('pneu'),BASE.op.filter(o=>o.fam==='Pneu').map(o=>o.desc),'— sem pneus');
+  $('data').value=new Date().toISOString().slice(0,10);
+  fillModelos();
+  document.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('input',()=>{if(el.id==='familia'){fillModelos();opcRows=[];renderOpc();}recalc();}));
+  load();
+  renderOpc();renderMan();recalc();
+  ['fCons','fCli','fDe','fAte'].forEach(id=>$(id).addEventListener('input',renderHist));
+  $('histOverlay').addEventListener('click',e=>{if(e.target===$('histOverlay'))fecharHist();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharHist();});
+  initAuth();
+  if(!FB)iniciarHist();
+}
+function fillModelos(){
+  const fam=$('familia').value;
+  fill($('modelo'),BASE.sr.filter(s=>s.fam===fam).map(s=>s.desc));
+}
+function opcForFam(){const fam=$('familia').value;return BASE.op.filter(o=>o.fam===fam);}
+function addOpc(){opcRows.push({desc:'',qtd:1});renderOpc();}
+function addMan(){manRows.push({desc:'',valor:0,qtd:1});renderMan();}
+function renderOpc(){
+  const tb=$('tblOpc').querySelector('tbody');tb.innerHTML='';
+  const list=opcForFam();
+  opcRows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const tdD=document.createElement('td');const sel=document.createElement('select');
+    fill(sel,list.map(o=>o.desc),'— selecione');sel.value=r.desc;sel.title=r.desc;
+    sel.addEventListener('change',()=>{r.desc=sel.value;renderOpc();recalc();});tdD.appendChild(sel);
+    const o=list.find(x=>x.desc===r.desc);
+    const tdU=document.createElement('td');tdU.className='un';tdU.textContent=o?o.un:'';
+    const tdQ=document.createElement('td');tdQ.className='r';const q=document.createElement('input');q.type='number';q.min='0';q.step='1';q.value=r.qtd;
+    q.addEventListener('input',()=>{r.qtd=parseFloat(q.value)||0;recalc();});tdQ.appendChild(q);
+    const tdV=document.createElement('td');tdV.className='r num';tdV.id='opcV'+i;tdV.textContent='—';
+    const tdX=document.createElement('td');const b=document.createElement('button');b.className='del';b.type='button';b.textContent='×';b.title='Remover';
+    b.addEventListener('click',()=>{opcRows.splice(i,1);renderOpc();recalc();});tdX.appendChild(b);
+    tr.append(tdD,tdU,tdQ,tdV,tdX);tb.appendChild(tr);
+  });
+  if(!opcRows.length){const tr=document.createElement('tr');tr.innerHTML='<td colspan="5" class="hint">Nenhum opcional adicionado.</td>';tb.appendChild(tr);}
+}
+function renderMan(){
+  const tb=$('tblMan').querySelector('tbody');tb.innerHTML='';
+  manRows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const tdD=document.createElement('td');const d=document.createElement('input');d.value=r.desc;d.placeholder='Descrição do item';
+    d.addEventListener('input',()=>{r.desc=d.value;recalc();});tdD.appendChild(d);
+    const tdP=document.createElement('td');tdP.className='r';const p=document.createElement('input');p.type='number';p.step='0.01';p.value=r.valor;p.style.width='120px';
+    p.addEventListener('input',()=>{r.valor=parseFloat(p.value)||0;recalc();});tdP.appendChild(p);
+    const tdQ=document.createElement('td');tdQ.className='r';const q=document.createElement('input');q.type='number';q.min='0';q.step='1';q.value=r.qtd;
+    q.addEventListener('input',()=>{r.qtd=parseFloat(q.value)||0;recalc();});tdQ.appendChild(q);
+    const tdV=document.createElement('td');tdV.className='r num';tdV.id='manV'+i;
+    const tdX=document.createElement('td');const b=document.createElement('button');b.className='del';b.type='button';b.textContent='×';b.title='Remover';
+    b.addEventListener('click',()=>{manRows.splice(i,1);renderMan();recalc();});tdX.appendChild(b);
+    tr.append(tdD,tdP,tdQ,tdV,tdX);tb.appendChild(tr);
+  });
+  if(!manRows.length){const tr=document.createElement('tr');tr.innerHTML='<td colspan="5" class="hint">Nenhum item manual.</td>';tb.appendChild(tr);}
+}
+
+/* ===== Motor de cálculo (Memória de Cálculo 4.2) ===== */
+function calcular(s){
+  const prod=BASE.sr.find(x=>x.fam===s.familia&&x.desc===s.modelo);
+  const metros=prod?prod.mm/1000:0;
+  const r={prod, metros, itens:[]};
+  // M14: produto × qtde
+  const vProd=prod?prod.preco*s.qtd:0; r.vProd=vProd;
+  // M17..M30: opcionais (M/Linear × metros)
+  r.opc=s.opc.map(o=>{const b=BASE.op.find(x=>x.fam===s.familia&&x.desc===o.desc);if(!b)return {...o,un:'',v:0};
+    const v=b.un==='M/Linear'?b.valor*metros*o.qtd:b.valor*o.qtd;return {...o,un:b.un,valor:b.valor,v};});
+  const look=d=>{const b=BASE.op.find(x=>x.desc===d);return b?b.valor:0};
+  r.remonta=look(s.remonta)*s.remontaQ; r.montagem=look(s.montagem)*s.montagemQ; r.rodas=look(s.rodas)*s.rodasQ;
+  r.man=s.man.map(m=>({...m,v:m.valor*m.qtd}));
+  // M41 total preço público
+  r.M41=vProd+r.opc.reduce((a,o)=>a+o.v,0)+r.remonta+r.montagem+r.rodas+r.man.reduce((a,m)=>a+m.v,0);
+  // C11: IPI
+  r.C11=s.ipi===5?r.M41*1.05:r.M41;
+  // C14: retira 18% + 9,25% e aplica impostos informados
+  const B29=(100-(s.icms+s.ipi+s.pis))/100; r.B29=B29;
+  r.C14=r.C11*0.7275/B29;
+  // C15: desconto autorizado
+  r.C15=r.C14*(1-s.desc/100);
+  // C17: comissão (sobre base líquida de ICMS+PIS/COFINS)
+  const k=(100-(s.icms+s.pis))/100;
+  r.C17=r.C15/(1-s.comissao/(100*k));
+  r.M42=r.C17;
+  r.comAut=s.comissao>5?(s.comissao-5)/2+5:s.comissao;
+  // Pneus
+  const pneu=BASE.op.find(x=>x.fam==='Pneu'&&x.desc===s.pneu);
+  r.C44=pneu?pneu.valor:0;
+  r.C45=s.pis===9.25?r.C44:r.C44*0.9075;
+  r.C46=r.C45*0.82/(1-s.icms/100);
+  r.C47=r.C46*(1-s.descPneu/100);
+  r.C48=r.C47*(1+s.comissao/100);   // M48 unitário
+  r.M49=r.C48*s.pneuQ;
+  // M54 valor total do conjunto
+  r.M52=s.ajuste; r.M54=r.M49+r.M42+r.M52;
+  // Pedido de venda
+  r.G63=s.qtd?(r.M54-r.M49)/s.qtd:0;
+  r.L66=s.qtd?(r.G63*s.qtd+r.C48*s.pneuQ)/s.qtd:0;
+  r.F67=r.L66*s.qtd;
+  return r;
+}
+function state(){
+  const s={};document.querySelectorAll('[data-k]').forEach(el=>s[el.dataset.k]=el.value);
+  ['icms','ipi','pis','comissao','desc','descPneu','ajuste','qtd','remontaQ','montagemQ','rodasQ','pneuQ'].forEach(k=>s[k]=parseFloat(s[k])||0);
+  s.opc=opcRows;s.man=manRows;return s;
+}
+function tipoModelo(d){d=d.toUpperCase();if(d.includes('SR'))return 'SEMIREBOQUE';if(d.includes('BT'))return 'BITREM';if(d.includes('RT'))return 'RODOTREM';if(d.includes('TT'))return 'TRITREM';return ''}
+function trator(d){const m=d.match(/(\d)X(\d)/i);return m?m[0].toUpperCase():''}
+let last=null;
+function recalc(){
+  const s=state();const r=calcular(s);last={s,r};
+  const p=r.prod;
+  $('p_cod').value=p?p.cod:'';$('p_tipo').value=p?tipoModelo(p.desc):'';$('p_trator').value=p?trator(p.desc):'';
+  $('p_comp').value=p?fmtN(r.metros,3)+' m':'';$('p_asso').value=p?(p.assoalho||''):'';$('p_preco').value=p?fmt(p.preco):'';
+  r.opc.forEach((o,i)=>{const el=$('opcV'+i);if(el)el.textContent=o.desc?fmt(o.v):'—';});
+  r.man.forEach((m,i)=>{const el=$('manV'+i);if(el)el.textContent=fmt(m.v);});
+  $('remontaV').textContent=s.remonta?fmt(r.remonta):'—';$('montagemV').textContent=s.montagem?fmt(r.montagem):'—';$('rodasV').textContent=s.rodas?fmt(r.rodas):'—';
+  $('pneuP').value=s.pneu?fmt(r.C44):'';
+  $('comAut').value=fmtN(r.comAut)+' %';
+  $('s_pp').textContent=fmt(r.M41);
+  $('s_ipiLbl').textContent='Com IPI '+fmtN(s.ipi,0)+'%';$('s_ipi').textContent=fmt(r.C11);
+  $('s_base').textContent=fmt(r.C14);
+  $('s_desc').textContent='− '+fmtN(s.desc)+'%  →  '+fmt(r.C15);
+  $('s_dist').textContent=fmt(r.M42);
+  $('s_pneuPP').textContent=s.pneu?fmt(r.C44):'—';$('s_pneuU').textContent=s.pneu?fmt(r.C48):'—';$('s_pneuT').textContent=fmt(r.M49);
+  $('s_aj').textContent=fmt(r.M52);$('s_unit').textContent=fmt(r.G63);$('s_unitPneu').textContent=fmt(r.L66);$('s_qtd').textContent=s.qtd;
+  $('s_total').textContent=fmt(r.F67);
+  $('s_totSub').textContent='Conjunto (produto + pneus + ajuste): '+fmt(r.M54)+' · ICMS '+fmtN(s.icms)+'% · IPI '+(s.ipi?fmtN(s.ipi,0)+'%':'isento');
+  buildDoc(s,r);save();
+}
+function esc(t){return String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function buildDoc(s,r){
+  const p=r.prod;const dt=s.data?new Date(s.data+'T00:00:00').toLocaleDateString('pt-BR'):'';
+  const linhas=[];
+  if(p)linhas.push([p.desc,'Un.',s.qtd,fmt(p.preco),fmt(r.vProd)]);
+  r.opc.filter(o=>o.desc).forEach(o=>linhas.push([o.desc,o.un,o.qtd,fmt(o.valor),fmt(o.v)]));
+  if(s.remonta)linhas.push([s.remonta,'Un.',s.remontaQ,'',fmt(r.remonta)]);
+  if(s.montagem)linhas.push([s.montagem,'Un.',s.montagemQ,'',fmt(r.montagem)]);
+  if(s.rodas)linhas.push([s.rodas,'Un.',s.rodasQ,'',fmt(r.rodas)]);
+  r.man.filter(m=>m.desc).forEach(m=>linhas.push([m.desc+' (sob consulta)','Un.',m.qtd,fmt(m.valor),fmt(m.v)]));
+  const logoHtml=LOGO
+    ?`<img src="${LOGO}" alt="PIRATRUCK">`
+    :`<div class="dlogo-mark">PIRATRUCK<span class="dlogo-sub">VEÍCULOS E IMPLEMENTOS</span></div>`;
+  $('doc').innerHTML=`
+  <div class="dlogo">${logoHtml}<div class="dlogo-right">PIRATRUCK VEÍCULOS E IMPLEMENTOS LTDA<br>comercial@piratruck.com.br</div></div>
+  <div class="dhead"><div><h1>Proposta comercial</h1><div class="small">Memória de Cálculo 4.2 · ${esc(s.lpp)}</div></div>
+    <div style="text-align:right"><div><b>Nº</b> ${esc(s.pedido)||'—'}</div><div><b>Data</b> ${dt}</div><div><b>Consultor</b> ${esc(s.consultor)||'—'}</div></div></div>
+  <h2>Dados do cliente</h2>
+  <div class="dgrid"><div><b>Cliente:</b> ${esc(s.cli_nome)}</div><div><b>CPF/CNPJ:</b> ${esc(s.cli_doc)} &nbsp; <b>IE:</b> ${esc(s.cli_ie)}</div>
+  <div><b>Endereço:</b> ${esc(s.cli_end)} ${s.cli_bairro?'– '+esc(s.cli_bairro):''}</div><div><b>Cidade/UF:</b> ${esc(s.cli_cidade)}${s.cli_uf?'/'+esc(s.cli_uf):''} &nbsp; <b>CEP:</b> ${esc(s.cli_cep)}</div>
+  <div><b>Contato:</b> ${esc(s.cli_contato)} &nbsp; ${esc(s.cli_tel)}</div><div><b>E-mail:</b> ${esc(s.cli_email)} &nbsp; <b>Regime:</b> ${esc(s.cli_regime)}</div></div>
+  <h2>Dados do produto</h2>
+  <div class="dgrid"><div><b>Item:</b> ${p?esc(p.desc):'—'}</div><div><b>Família:</b> ${esc(s.familia)} &nbsp; <b>Modelo:</b> ${p?tipoModelo(p.desc):''}</div>
+  <div><b>Código:</b> ${p?esc(p.cod):''} &nbsp; <b>Cam. trator:</b> ${p?trator(p.desc):''}</div><div><b>Comprimento:</b> ${p?fmtN(r.metros,3)+' m':''} &nbsp; <b>Assoalho:</b> ${p?esc(p.assoalho):''}</div>
+  <div><b>Rodas:</b> ${s.rodas?esc(s.rodas):'Roda 8.25x22.5 aço (padrão)'}</div><div><b>Quantidade:</b> ${s.qtd}</div></div>
+  <h2>Configuração e opcionais</h2>
+  <table><thead><tr><th>Descrição</th><th>Un.</th><th style="text-align:right">Qtde.</th><th style="text-align:right">Preço público unit.</th><th style="text-align:right">Preço público</th></tr></thead>
+  <tbody>${linhas.map(l=>`<tr><td>${esc(l[0])}</td><td>${esc(l[1])}</td><td style="text-align:right">${l[2]}</td><td style="text-align:right">${l[3]}</td><td style="text-align:right">${l[4]}</td></tr>`).join('')}
+  <tr><td colspan="4"><b>Total preço público</b></td><td style="text-align:right"><b>${fmt(r.M41)}</b></td></tr></tbody></table>
+  ${s.pneu?`<h2>Pneus</h2><table><tbody><tr><td>${esc(s.pneu.trim())}</td><td style="text-align:right">${s.pneuQ} un.</td><td style="text-align:right">${fmt(r.C48)} / un.</td><td style="text-align:right"><b>${fmt(r.M49)}</b></td></tr></tbody></table>`:''}
+  <h2>Valores</h2>
+  <div class="dtot">
+    <div>Valor unitário do produto (com opcionais)</div><div style="text-align:right">${fmt(r.G63)}</div>
+    ${s.pneu?`<div>Valor unitário pneu × ${s.pneuQ}</div><div style="text-align:right">${fmt(r.C48)}</div>`:''}
+    ${s.ajuste?`<div>Ajuste no preço final</div><div style="text-align:right">${fmt(r.M52)}</div>`:''}
+    <div>Valor total unitário produto + pneus</div><div style="text-align:right">${fmt(r.L66)}</div>
+    <div class="big">VALOR TOTAL (${s.qtd} un.)</div><div class="big" style="text-align:right">${fmt(r.F67)}</div>
+  </div>
+  <h2>Condições comerciais</h2>
+  <div class="dgrid"><div><b>ICMS:</b> ${fmtN(s.icms)}% &nbsp; <b>IPI:</b> ${s.ipi?fmtN(s.ipi,0)+'%':'ISENTO'} &nbsp; <b>PIS/COFINS:</b> ${fmtN(s.pis)}%</div><div><b>Pagamento:</b> ${esc(s.pgto)}</div>
+  <div><b>Entrega:</b> ${esc(s.entrega)}</div></div>
+  ${s.obs?`<h2>Observações</h2><div style="white-space:pre-wrap">${esc(s.obs)}</div>`:''}
+  <div class="sig"><div>Cliente</div><div>Consultor</div></div>`;
+}
+function save(){try{const s=state();localStorage.setItem('cotacao42',JSON.stringify({s,opc:opcRows,man:manRows,quoteId}));}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem('cotacao42'));if(!d)return;
+  Object.entries(d.s).forEach(([k,v])=>{const el=document.querySelector(`[data-k="${k}"]`);if(el&&typeof v!=='object')el.value=v;});
+  fillModelos();if(d.s.modelo)$('modelo').value=d.s.modelo;
+  opcRows=d.opc||[];manRows=d.man||[];if(d.quoteId)quoteId=d.quoteId;}catch(e){}}
+function limparTudo(){if(!confirm('Limpar todos os campos e iniciar uma nova cotação?'))return;try{localStorage.removeItem('cotacao42')}catch(e){}location.reload();}
+init();
+</script>
+
+</body>
+</html>
