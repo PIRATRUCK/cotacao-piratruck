@@ -654,9 +654,9 @@ function buildDoc(s,r){
   r.man.filter(m=>m.desc).forEach(m=>linhas.push([m.desc+' (sob consulta)','Un.',m.qtd,fmt(m.valor),fmt(m.v)]));
   const logoHtml=LOGO
     ?`<img src="${LOGO}" alt="PIRATRUCK">`
-    :`<div class="dlogo-mark">PIRATRUCK<span class="dlogo-sub">VEÍCULOS E IMPLEMENTOS</span></div>`;
+    :`<div class="dlogo-mark">PIRATRUCK</div>`;
   $('doc').innerHTML=`
-  <div class="dlogo">${logoHtml}<div class="dlogo-right">PIRATRUCK VEÍCULOS E IMPLEMENTOS LTDA<br>comercial@piratruck.com.br</div></div>
+  <div class="dlogo">${logoHtml}<div class="dlogo-right">PIRATRUCK<br>comercial@piratruck.com.br</div></div>
   <div class="dhead"><div><h1>Proposta comercial</h1><div class="small">Memória de Cálculo 4.2 · ${esc(s.lpp)}</div></div>
     <div style="text-align:right"><div><b>Nº</b> ${esc(s.pedido)||'—'}</div><div><b>Data</b> ${dt}</div><div><b>Consultor</b> ${esc(s.consultor)||'—'}</div></div></div>
   <h2>Dados do cliente</h2>
