@@ -425,23 +425,29 @@ async function salvarManual(){
   btn.disabled=true;const txt=btn.textContent;btn.textContent='Salvando…';
   let onde='local';
   try{ onde=await salvarCotacao(); }
-  catch(e){ btn.textContent='Erro ao salvar';setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2000);return; }
-  btn.textContent='Salva no histórico ✓';
-  setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2000);
+  catch(e){ btn.textContent='Erro ao salvar';setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2500);return; }
+  btn.textContent = onde==='db' ? 'Salva no histórico ✓' : 'Salva só neste navegador ⚠';
+  await iniciarHist(); renderHist();   // recarrega/re-assina para a cotação aparecer na hora
+  setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2500);
 }
 async function imprimir(){
   try{ await salvarCotacao(); }catch(e){}
   window.print();
 }
 async function iniciarHist(){
+  if(dbUnsub){try{dbUnsub()}catch(e){} dbUnsub=null;}   // evita assinatura duplicada / re-assina após erro
   const db=await getDb();
   if(db){
     try{
       dbUnsub=db.collection('cotacoes').orderBy('savedAt','desc').limit(300).onSnapshot(snap=>{
         histDocs=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,rec:d.data()}));
+        $('histFonte').textContent='Histórico compartilhado no Firebase — todos os usuários veem as mesmas cotações.';
         renderHist();
-      },e=>{ console.warn('hist sub',e); histDocs=histLS(); renderHist(); });
-      $('histFonte').textContent='Histórico compartilhado no Firebase — todos os usuários veem as mesmas cotações.';
+      },e=>{ console.warn('hist sub',e); histDocs=histLS();
+        $('histFonte').textContent=(e&&e.code==='permission-denied')
+          ? '⚠ Sem permissão no Firestore (coleção "cotacoes"). Publique a regra e recarregue a página.'
+          : 'Sem conexão com o Firebase — histórico só deste navegador.';
+        renderHist(); });
       return;
     }catch(e){}
   }
