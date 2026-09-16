@@ -12,7 +12,8 @@ service cloud.firestore {
     match /cotacoes/{id} {
       allow read:   if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
+      allow update: if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
+      allow delete: if isAdmin();   // só o admin apaga; vendedor não
     }
 
     // CHECKLIST de veículos: mantém como estava (qualquer usuário logado).

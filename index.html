@@ -515,8 +515,14 @@ function renderHist(){
     const td=document.createElement('td');td.className='hist-act';
     const bA=document.createElement('button');bA.textContent='Abrir';bA.addEventListener('click',()=>abrirCotacao(h));
     const bP=document.createElement('button');bP.textContent='Imprimir';bP.addEventListener('click',()=>{abrirCotacao(h);setTimeout(()=>imprimir(),200);});
-    const bD=document.createElement('button');bD.textContent='Excluir';bD.className='del';bD.addEventListener('click',()=>excluirCotacao(h));
-    td.append(bA,bP,bD);tr.appendChild(td);tb.appendChild(tr);
+    // Excluir: só o admin. Vendedor não vê o botão (e o banco também bloqueia).
+    if(isAdminUser()){
+      const bD=document.createElement('button');bD.textContent='Excluir';bD.className='del';bD.addEventListener('click',()=>excluirCotacao(h));
+      td.append(bA,bP,bD);
+    } else {
+      td.append(bA,bP);
+    }
+    tr.appendChild(td);tb.appendChild(tr);
   });
   if(!rows.length){const tr=document.createElement('tr');tr.innerHTML='<td colspan="7" class="hint">Nenhuma cotação encontrada.</td>';tb.appendChild(tr);}
 }
