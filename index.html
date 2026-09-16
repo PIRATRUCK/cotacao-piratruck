@@ -320,6 +320,7 @@ tr.hist-row td{cursor:default}
         <div class="f"><label class="lbl" for="fAte">Até</label><input id="fAte" type="date"></div>
       </div>
       <div class="hist-meta"><span id="histCount"></span><span id="histFonte"></span></div>
+      <div id="crmResumo" hidden style="margin:6px 0 10px;padding:10px 12px;border:1px solid #e5c200;background:#fffbe6;border-radius:8px"></div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Data</th><th>Consultor</th><th>Cliente</th><th>Produto</th><th class="r">Qtde.</th><th class="r">Valor total</th><th></th></tr></thead>
         <tbody id="histBody"></tbody>
@@ -373,6 +374,9 @@ try{
   }
 }catch(e){console.warn('firebase init',e)}
 async function getDb(){ return (FB&&FB.user)?FB.db:null; }
+// CRM: admin vê tudo; vendedor vê só as próprias cotações
+const ADMIN_EMAILS=['piratruck.inteligente@outlook.com'];
+function isAdminUser(){ return !!(FB&&FB.user&&FB.user.email&&ADMIN_EMAILS.includes((FB.user.email||'').toLowerCase())); }
 function sair(){ if(FB)FB.auth.signOut(); }
 function setUser(u){
   if(!FB)return;
@@ -407,6 +411,8 @@ function registro(){
     consultor:(s.consultor||'').trim(),cliente:(s.cli_nome||'').trim(),pedido:s.pedido||'',
     familia:s.familia,modelo:s.modelo,qtd:s.qtd,total:r.F67,dist:r.M42,
     usuario:(FB&&FB.user)?(FB.user.email||''):'',
+    ownerUid:(FB&&FB.user)?(FB.user.uid||''):'',
+    ownerEmail:(FB&&FB.user)?(FB.user.email||''):'',
     state:{s:{...s,opc:undefined,man:undefined},opc:opcRows,man:manRows}};
 }
 async function salvarCotacao(){
@@ -439,9 +445,17 @@ async function iniciarHist(){
   const db=await getDb();
   if(db){
     try{
-      dbUnsub=db.collection('cotacoes').orderBy('savedAt','desc').limit(300).onSnapshot(snap=>{
-        histDocs=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,rec:d.data()}));
-        $('histFonte').textContent='Histórico compartilhado no Firebase — todos os usuários veem as mesmas cotações.';
+      const admin=isAdminUser();
+      const q=admin
+        ? db.collection('cotacoes').orderBy('savedAt','desc').limit(500)
+        : db.collection('cotacoes').where('ownerUid','==',FB.user.uid);
+      dbUnsub=q.onSnapshot(snap=>{
+        let docs=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,rec:d.data()}));
+        if(!admin) docs.sort((a,b)=>(''+(b.rec.savedAt||'')).localeCompare(''+(a.rec.savedAt||'')));
+        histDocs=docs;
+        $('histFonte').textContent=admin
+          ? '🔑 Admin — você vê as cotações de TODOS os vendedores.'
+          : 'Você vê apenas as SUAS cotações.';
         renderHist();
       },e=>{ console.warn('hist sub',e); histDocs=histLS();
         $('histFonte').textContent=(e&&e.code==='permission-denied')
@@ -473,6 +487,22 @@ function renderHist(){
     return true;
   });
   $('histCount').textContent=rows.length+(rows.length===1?' cotação':' cotações')+(rows.length!==histDocs.length?' (de '+histDocs.length+')':'');
+  // CRM: resumo por vendedor (só admin) — respeita os filtros de período/cliente/consultor
+  const cr=$('crmResumo');
+  if(isAdminUser()){
+    const by={};
+    rows.forEach(h=>{const k=(h.rec.ownerEmail||h.rec.usuario||h.rec.consultor||'(sem vendedor)');(by[k]=by[k]||{n:0,tot:0});by[k].n++;by[k].tot+=(+h.rec.total||0);});
+    const ent=Object.entries(by).sort((a,b)=>b[1].tot-a[1].tot);
+    const totV=rows.reduce((s,h)=>s+(+h.rec.total||0),0);
+    cr.hidden=false;
+    cr.innerHTML='<b>📊 CRM — cotações por vendedor</b>'+(ent.length
+      ?'<div style="margin-top:6px;display:grid;grid-template-columns:1fr auto auto;gap:2px 14px;font-size:13px">'
+        +'<span style="font-weight:700">Vendedor</span><span style="font-weight:700;text-align:right">Qtde.</span><span style="font-weight:700;text-align:right">Valor total</span>'
+        +ent.map(([k,v])=>`<span>${esc(k)}</span><span style="text-align:right">${v.n}</span><span style="text-align:right">${fmt(v.tot)}</span>`).join('')
+        +`<span style="font-weight:700;border-top:1px solid #e5c200;margin-top:3px;padding-top:2px">TOTAL</span><span style="font-weight:700;text-align:right;border-top:1px solid #e5c200;margin-top:3px;padding-top:2px">${rows.length}</span><span style="font-weight:700;text-align:right;border-top:1px solid #e5c200;margin-top:3px;padding-top:2px">${fmt(totV)}</span>`
+        +'</div>'
+      :'<div class="hint" style="margin-top:4px">Sem cotações no filtro.</div>');
+  } else { cr.hidden=true; }
   const tb=$('histBody');tb.innerHTML='';
   rows.forEach(h=>{
     const r=h.rec;const tr=document.createElement('tr');tr.className='hist-row';
