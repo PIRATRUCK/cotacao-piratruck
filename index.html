@@ -422,18 +422,19 @@ async function salvarCotacao(){
   recalc();
   const rec=registro();
   const db=await getDb();
+  window.lastSaveErr='';
   if(db){
     try{ await db.collection('cotacoes').doc(quoteId).set(rec); return 'db'; }
     catch(e){
-      console.warn('db save',e);
+      console.warn('db save',e); window.lastSaveErr=(e&&(e.code||e.message))||'erro';
       // Cotação carregada é antiga/de outro dono → a regra bloqueia o update.
       // Salva como cotação NOVA sob o usuário atual (não perde o trabalho).
-      if(e&&e.code==='permission-denied'&&FB&&FB.user){
-        try{ quoteId=novoId(); await db.collection('cotacoes').doc(quoteId).set(rec); save(); return 'db'; }
-        catch(e2){ console.warn('db save retry',e2); }
+      if(FB&&FB.user){
+        try{ quoteId=novoId(); await db.collection('cotacoes').doc(quoteId).set(rec); save(); window.lastSaveErr=''; return 'db'; }
+        catch(e2){ console.warn('db save retry',e2); window.lastSaveErr=(e2&&(e2.code||e2.message))||'erro'; }
       }
     }
-  }
+  } else { window.lastSaveErr='sem conexão com o banco (não logado?)'; }
   const a=histLS().filter(x=>x.id!==quoteId); a.unshift({id:quoteId,rec}); histLSSave(a);
   return 'local';
 }
@@ -443,7 +444,8 @@ async function salvarManual(){
   let onde='local';
   try{ onde=await salvarCotacao(); }
   catch(e){ btn.textContent='Erro ao salvar';setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2500);return; }
-  btn.textContent = onde==='db' ? 'Salva no histórico ✓' : 'Salva só neste navegador ⚠';
+  if(onde==='db'){ btn.textContent='Salva no histórico ✓'; }
+  else { btn.textContent='Salva só neste navegador ⚠'; if(window.lastSaveErr) alert('Não salvou no banco.\nMotivo: '+window.lastSaveErr); }
   await iniciarHist(); renderHist();   // recarrega/re-assina para a cotação aparecer na hora
   setTimeout(()=>{btn.textContent=txt;btn.disabled=false;},2500);
 }
