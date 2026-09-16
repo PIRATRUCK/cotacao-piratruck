@@ -461,9 +461,10 @@ async function iniciarHist(){
         let docs=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,rec:d.data()}));
         if(!admin) docs.sort((a,b)=>(''+(b.rec.savedAt||'')).localeCompare(''+(a.rec.savedAt||'')));
         histDocs=docs;
-        $('histFonte').textContent=admin
+        $('histFonte').textContent=(admin
           ? '🔑 Admin — você vê as cotações de TODOS os vendedores.'
-          : 'Você vê apenas as SUAS cotações.';
+          : 'Você vê apenas as SUAS cotações.')
+          + ' [logado: '+(FB.user.email||'?')+' · '+(admin?'ADMIN':'vendedor')+']';
         renderHist();
       },e=>{ console.warn('hist sub',e); histDocs=histLS();
         $('histFonte').textContent=(e&&e.code==='permission-denied')
