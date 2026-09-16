@@ -139,6 +139,9 @@ tr.hist-row td{cursor:default}
   #doc{display:block;position:static;width:auto;padding:0}
 }
 @media (prefers-reduced-motion: no-preference){.tot-val{transition:color .2s}}
+/* campos de data (histórico): calendário visível no tema escuro + clique abre o calendário */
+input.dt{color-scheme:dark;cursor:pointer}
+input.dt::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;filter:invert(78%) sepia(60%) saturate(900%) hue-rotate(360deg) brightness(105%)}
 </style>
 </head>
 <body>
@@ -319,8 +322,8 @@ tr.hist-row td{cursor:default}
       <div class="hist-filtros">
         <div class="f"><label class="lbl" for="fCons">Quem cotou (consultor)</label><select id="fCons"><option value="">Todos</option></select></div>
         <div class="f"><label class="lbl" for="fCli">Cliente</label><input id="fCli" placeholder="Buscar por nome"></div>
-        <div class="f"><label class="lbl" for="fDe">De</label><input id="fDe" type="date"></div>
-        <div class="f"><label class="lbl" for="fAte">Até</label><input id="fAte" type="date"></div>
+        <div class="f"><label class="lbl" for="fDe">De</label><input id="fDe" type="date" class="dt"></div>
+        <div class="f"><label class="lbl" for="fAte">Até</label><input id="fAte" type="date" class="dt"></div>
       </div>
       <div class="hist-meta"><span id="histCount"></span><span id="histFonte"></span></div>
       <div id="crmResumo" hidden style="margin:6px 0 10px;padding:10px 12px;border:1px solid #ffc20e;background:#141414;color:#ececec;border-radius:8px"></div>
@@ -587,6 +590,7 @@ function init(){
   load();
   renderOpc();renderMan();recalc();
   ['fCons','fCli','fDe','fAte'].forEach(id=>$(id).addEventListener('input',renderHist));
+  ['fDe','fAte'].forEach(id=>{const el=$(id); el.addEventListener('click',()=>{try{el.showPicker&&el.showPicker();}catch(e){}});});
   $('histOverlay').addEventListener('click',e=>{if(e.target===$('histOverlay'))fecharHist();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharHist();});
   initAuth();
