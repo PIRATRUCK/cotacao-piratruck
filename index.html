@@ -374,6 +374,7 @@ try{
   if(FIREBASE_CONFIG.apiKey!=="COLE_AQUI"&&window.firebase){
     firebase.initializeApp(FIREBASE_CONFIG);
     FB={auth:firebase.auth(),db:firebase.firestore(),user:null};
+    try{ FB.db.settings({ignoreUndefinedProperties:true}); }catch(e){ console.warn('fs settings',e); }
   }
 }catch(e){console.warn('firebase init',e)}
 async function getDb(){ return (FB&&FB.user)?FB.db:null; }
@@ -418,9 +419,17 @@ function registro(){
     ownerEmail:(FB&&FB.user)?(FB.user.email||''):'',
     state:{s:{...s,opc:undefined,man:undefined},opc:opcRows,man:manRows}};
 }
+// Firestore recusa undefined/NaN/Infinity → limpa recursivamente antes de gravar
+function sanitize(v){
+  if(Array.isArray(v)) return v.map(sanitize);
+  if(v&&typeof v==='object'){ const o={}; for(const k in v){ const x=sanitize(v[k]); if(x!==undefined) o[k]=x; } return o; }
+  if(typeof v==='number' && !Number.isFinite(v)) return null;
+  if(v===undefined) return null;
+  return v;
+}
 async function salvarCotacao(){
   recalc();
-  const rec=registro();
+  const rec=sanitize(registro());
   const db=await getDb();
   window.lastSaveErr='';
   if(db){
