@@ -650,7 +650,7 @@ function recalc(){
 }
 function esc(t){return String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function buildDoc(s,r){
-  const p=r.prod;const dt=s.data?new Date(s.data+'T00:00:00').toLocaleDateString('pt-BR'):'';
+  const p=r.prod;const dtBase=s.data?new Date(s.data+'T00:00:00'):null;const dt=dtBase?dtBase.toLocaleDateString('pt-BR'):'';const dtVal=dtBase?new Date(dtBase.getTime()+5*864e5).toLocaleDateString('pt-BR'):'';
   const linhas=[];
   if(p)linhas.push([p.desc,'Un.',s.qtd,fmt(p.preco),fmt(r.vProd)]);
   r.opc.filter(o=>o.desc).forEach(o=>linhas.push([o.desc,o.un,o.qtd,fmt(o.valor),fmt(o.v)]));
@@ -664,7 +664,7 @@ function buildDoc(s,r){
   $('doc').innerHTML=`
   <div class="dlogo">${logoHtml}<div class="dlogo-right">PIRATRUCK<br>comercial@piratruck.com.br</div></div>
   <div class="dhead"><div><h1>Proposta comercial</h1><div class="small">Memória de Cálculo 4.2 · ${esc(s.lpp)}</div></div>
-    <div style="text-align:right"><div><b>Nº</b> ${esc(s.pedido)||'—'}</div><div><b>Data</b> ${dt}</div><div><b>Consultor</b> ${esc(s.consultor)||'—'}</div></div></div>
+    <div style="text-align:right"><div><b>Nº</b> ${esc(s.pedido)||'—'}</div><div><b>Data</b> ${dt}</div><div><b>Validade</b> 5 dias${dtVal?` (até ${dtVal})`:''}</div><div><b>Consultor</b> ${esc(s.consultor)||'—'}</div></div></div>
   <h2>Dados do cliente</h2>
   <div class="dgrid"><div><b>Cliente:</b> ${esc(s.cli_nome)}</div><div><b>CPF/CNPJ:</b> ${esc(s.cli_doc)} &nbsp; <b>IE:</b> ${esc(s.cli_ie)}</div>
   <div><b>Endereço:</b> ${esc(s.cli_end)} ${s.cli_bairro?'– '+esc(s.cli_bairro):''}</div><div><b>Cidade/UF:</b> ${esc(s.cli_cidade)}${s.cli_uf?'/'+esc(s.cli_uf):''} &nbsp; <b>CEP:</b> ${esc(s.cli_cep)}</div>
