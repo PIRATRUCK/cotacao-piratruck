@@ -5,13 +5,13 @@ service cloud.firestore {
     // ADMIN vê tudo (por e-mail de login). Adicione outros e-mails na lista se precisar.
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email in ['piratruck.inteligente@outlook.com'];
+        && request.auth.token.email in ['piratruck.inteligente@outlook.com.br','piratruck.inteligente@outlook.com'];
     }
 
     // COTAÇÕES: cada vendedor só as próprias; admin vê/edita todas.
     match /cotacoes/{id} {
       allow read:   if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if isAdmin() || (request.auth != null && request.resource.data.ownerUid == request.auth.uid);
       allow update: if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       allow delete: if isAdmin();   // só o admin apaga; vendedor não
     }

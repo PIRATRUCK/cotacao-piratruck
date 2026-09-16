@@ -378,7 +378,7 @@ try{
 }catch(e){console.warn('firebase init',e)}
 async function getDb(){ return (FB&&FB.user)?FB.db:null; }
 // CRM: admin vê tudo; vendedor vê só as próprias cotações
-const ADMIN_EMAILS=['piratruck.inteligente@outlook.com'];
+const ADMIN_EMAILS=['piratruck.inteligente@outlook.com.br','piratruck.inteligente@outlook.com'];
 function isAdminUser(){ return !!(FB&&FB.user&&FB.user.email&&ADMIN_EMAILS.includes((FB.user.email||'').toLowerCase())); }
 function sair(){ if(FB)FB.auth.signOut(); }
 function setUser(u){
