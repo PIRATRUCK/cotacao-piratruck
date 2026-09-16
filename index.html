@@ -421,7 +421,15 @@ async function salvarCotacao(){
   const db=await getDb();
   if(db){
     try{ await db.collection('cotacoes').doc(quoteId).set(rec); return 'db'; }
-    catch(e){ console.warn('db save',e); }
+    catch(e){
+      console.warn('db save',e);
+      // Cotação carregada é antiga/de outro dono → a regra bloqueia o update.
+      // Salva como cotação NOVA sob o usuário atual (não perde o trabalho).
+      if(e&&e.code==='permission-denied'&&FB&&FB.user){
+        try{ quoteId=novoId(); await db.collection('cotacoes').doc(quoteId).set(rec); save(); return 'db'; }
+        catch(e2){ console.warn('db save retry',e2); }
+      }
+    }
   }
   const a=histLS().filter(x=>x.id!==quoteId); a.unshift({id:quoteId,rec}); histLSSave(a);
   return 'local';
