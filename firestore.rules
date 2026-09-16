@@ -2,28 +2,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ADMIN vê tudo (por e-mail de login). Adicione outros e-mails na lista se precisar.
+    // ADMIN da cotação (por e-mail de login). Só afeta a coleção "cotacoes".
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email in ['piratruck.inteligente@outlook.com.br','piratruck.inteligente@outlook.com'];
     }
 
-    // COTAÇÕES: cada vendedor só as próprias; admin vê/edita todas.
+    // ===== COTAÇÃO: isolada por dono; admin vê tudo; só admin apaga =====
     match /cotacoes/{id} {
       allow read:   if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       allow create: if isAdmin() || (request.auth != null && request.resource.data.ownerUid == request.auth.uid);
       allow update: if isAdmin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
-      allow delete: if isAdmin();   // só o admin apaga; vendedor não
+      allow delete: if isAdmin();
     }
 
-    // CHECKLIST de veículos: mantém como estava (qualquer usuário logado).
-    match /checklist_veiculos/{id} {
-      allow read, write: if request.auth != null;
-    }
+    // ===== DEMAIS SISTEMAS: qualquer usuário logado (modelo compartilhado) =====
+    match /checklist_veiculos/{id}        { allow read, write: if request.auth != null; }
+    match /orcamentos/{id}                { allow read, write: if request.auth != null; }
+    match /pecas_contatos/{id}            { allow read, write: if request.auth != null; }
+    match /pecas_vendas/{id}              { allow read, write: if request.auth != null; }
+    match /pecas_vendedores/{id}          { allow read, write: if request.auth != null; }
+    match /crm_contatos/{id}              { allow read, write: if request.auth != null; }
+    match /agenda/{id}                    { allow read, write: if request.auth != null; }
+    match /agenda_usuarios/{id}           { allow read, write: if request.auth != null; }
+    match /agenda_ademicon/{id}           { allow read, write: if request.auth != null; }
+    match /agenda_ademicon_sugestoes/{id} { allow read, write: if request.auth != null; }
+    match /agenda_ademicon_usuarios/{id}  { allow read, write: if request.auth != null; }
+    match /financas_pessoais/{id}         { allow read, write: if request.auth != null; }
 
-    // Qualquer outra coleção: bloqueado.
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    // Qualquer outra coleção não listada: bloqueado.
+    match /{document=**} { allow read, write: if false; }
   }
 }
