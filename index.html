@@ -45,6 +45,11 @@ textarea{min-height:64px;resize:vertical}
 .hint{font-size:12px;color:var(--muted)}
 .hint.warn{color:var(--hi)}
 .hint.bad{color:var(--neg)}
+.hint.ok{color:var(--ok)}
+.doc-row{display:flex;gap:6px;min-width:0}
+.doc-row input{flex:1;padding-left:7px;padding-right:6px}
+.cnpj-btn{padding:6px 8px;font-size:12px;white-space:nowrap}
+.cnpj-btn[disabled]{opacity:.55;cursor:wait}
 
 table{width:100%;border-collapse:collapse}
 th{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
@@ -167,8 +172,8 @@ input.dt::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;filter:inve
   <div class="grid g6">
     <div class="f span3"><label class="lbl" for="cli_nome">Cliente</label><input id="cli_nome" data-k="cli_nome" placeholder="Razão social / nome"></div>
     <div class="f span2"><label class="lbl" for="cli_doc">CPF / CNPJ</label>
-      <div style="display:flex;gap:6px"><input id="cli_doc" data-k="cli_doc" style="flex:1" onblur="buscarCNPJ(true)" placeholder="digite o CNPJ → busca automática"><button type="button" class="btn" onclick="buscarCNPJ()" style="white-space:nowrap">🔍 Buscar</button></div>
-      <div id="cnpjMsg" class="hint" style="min-height:1em;margin-top:3px"></div></div>
+      <div class="doc-row"><input id="cli_doc" data-k="cli_doc" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18"><button type="button" id="btnCnpj" class="btn cnpj-btn" onclick="buscarCnpj()">Buscar</button></div>
+      <span class="hint" id="cnpjStatus">Digite o CNPJ para preencher os dados automaticamente.</span></div>
     <div class="f"><label class="lbl" for="cli_ie">Insc. estadual</label><input id="cli_ie" data-k="cli_ie"></div>
     <div class="f span3"><label class="lbl" for="cli_end">Endereço</label><input id="cli_end" data-k="cli_end"></div>
     <div class="f span2"><label class="lbl" for="cli_bairro">Bairro</label><input id="cli_bairro" data-k="cli_bairro"></div>
@@ -422,6 +427,7 @@ function registro(){
     usuario:(FB&&FB.user)?(FB.user.email||''):'',
     ownerUid:(FB&&FB.user)?(FB.user.uid||''):'',
     ownerEmail:(FB&&FB.user)?(FB.user.email||''):'',
+    cli_doc_num:((s.cli_doc||'')+'').replace(/\D/g,''),
     state:{s:{...s,opc:undefined,man:undefined},opc:opcRows,man:manRows}};
 }
 // Firestore recusa undefined/NaN/Infinity → limpa recursivamente antes de gravar
@@ -758,31 +764,64 @@ function buildDoc(s,r){
   ${s.obs?`<h2>Observações</h2><div style="white-space:pre-wrap">${esc(s.obs)}</div>`:''}
   <div class="sig"><div>Cliente</div><div>Consultor</div></div>`;
 }
-// Busca dados do cliente pelo CNPJ (BrasilAPI, grátis) e preenche o formulário
-async function buscarCNPJ(auto){
-  const el=$('cli_doc'),msg=$('cnpjMsg');if(!el)return;
-  const d=(el.value||'').replace(/\D/g,'');
-  if(d.length!==14){ if(!auto&&msg)msg.textContent='Digite um CNPJ com 14 dígitos (empresa).'; return; }
-  if(auto && $('cli_nome') && $('cli_nome').value) return;
-  if(msg)msg.textContent='🔎 Buscando dados do CNPJ…';
-  try{
-    const r=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+d);
-    if(!r.ok){ if(msg)msg.textContent=(r.status===404?'CNPJ não encontrado na Receita.':'Não deu pra consultar agora ('+r.status+').'); return; }
-    const j=await r.json();
-    const setF=(id,v)=>{const e=$(id);if(e&&v!=null&&v!=='')e.value=v;};
-    setF('cli_nome', j.razao_social||j.nome_fantasia||'');
-    setF('cli_end', [j.logradouro,j.numero].filter(Boolean).join(', '));
-    setF('cli_bairro', j.bairro||'');
-    setF('cli_cidade', j.municipio||'');
-    setF('cli_uf', j.uf||'');
-    if(j.cep) setF('cli_cep', (''+j.cep).replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2'));
-    const tel=(''+(j.ddd_telefone_1||'')).replace(/\D/g,'');
-    if(tel) setF('cli_tel', tel.length>=10?'('+tel.slice(0,2)+') '+tel.slice(2):tel);
-    if(j.email) setF('cli_email', j.email);
-    if(msg)msg.innerHTML='✓ '+esc(j.razao_social||'')+(j.descricao_situacao_cadastral?' · '+esc(j.descricao_situacao_cadastral):'');
-    try{recalc();}catch(e){} try{save();}catch(e){}
-  }catch(e){ if(msg)msg.textContent='Sem conexão pra consultar o CNPJ.'; }
+// ===== Consulta automática de CNPJ (BrasilAPI) =====
+const CNPJ_API='https://brasilapi.com.br/api/cnpj/v1/';
+function soDigitos(v){return (v||'').replace(/\D/g,'');}
+function mascaraDoc(v){
+  const d=soDigitos(v).slice(0,14);
+  if(d.length<=11) return d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');
+  return d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
 }
+function cnpjValido(c){
+  if(c.length!==14 || /^(\d)\1+$/.test(c)) return false;
+  const calc=(b,p)=>{const s=b.split('').reduce((a,d,i)=>a+d*p[i],0);const r=s%11;return r<2?0:11-r;};
+  return +c[12]===calc(c.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]) && +c[13]===calc(c.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2]);
+}
+function cnpjStatus(msg,cls){const el=$('cnpjStatus');if(!el)return;el.textContent=msg;el.className='hint'+(cls?' '+cls:'');}
+function setCampo(id,val){const el=$(id);if(!el||val==null||val==='')return;el.value=val;el.dispatchEvent(new Event('input',{bubbles:true}));}
+function fmtTel(ddd,num){const d=soDigitos(ddd),n=soDigitos(num);if(!n)return '';return (d+n).replace(/^(\d{2})(\d{4,5})(\d{4})$/,'($1) $2-$3');}
+function fmtCep(c){const d=soDigitos(c);return d.length===8?d.replace(/^(\d{5})(\d{3})$/,'$1-$2'):(c||'');}
+let cnpjUltimo='';
+async function buscarCnpj(){
+  const c=soDigitos($('cli_doc').value);
+  if(c.length===11){cnpjStatus('CPF informado — a consulta automática vale só para CNPJ.');return;}
+  if(!cnpjValido(c)){cnpjStatus('CNPJ inválido — confira os dígitos.','bad');return;}
+  const btn=$('btnCnpj');if(btn)btn.disabled=true;cnpjStatus('Consultando Receita Federal…');
+  try{
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),12000);
+    const r=await fetch(CNPJ_API+c,{signal:ctrl.signal});clearTimeout(t);
+    if(r.status===404) throw new Error('CNPJ não encontrado na base da Receita.');
+    if(r.status===429) throw new Error('Muitas consultas seguidas — aguarde um instante e tente de novo.');
+    if(!r.ok) throw new Error('Falha na consulta ('+r.status+'). Preencha manualmente.');
+    const d=await r.json();
+    setCampo('cli_nome',d.razao_social||d.nome_fantasia||'');
+    setCampo('cli_end',[d.descricao_tipo_de_logradouro,d.logradouro,d.numero?', '+d.numero:'',d.complemento?' '+d.complemento:''].filter(Boolean).join(' ').replace(/\s+,/g,',').replace(/\s{2,}/g,' ').trim());
+    setCampo('cli_bairro',d.bairro||'');
+    setCampo('cli_cep',fmtCep(d.cep));
+    setCampo('cli_cidade',d.municipio||'');
+    setCampo('cli_uf',d.uf||'');
+    setCampo('cli_tel',fmtTel(d.ddd_telefone_1&&d.ddd_telefone_1.slice(0,2),d.ddd_telefone_1&&d.ddd_telefone_1.slice(2)));
+    setCampo('cli_email',(d.email||'').toLowerCase());
+    if(d.opcao_pelo_mei) setCampo('cli_regime','MEI'); else if(d.opcao_pelo_simples) setCampo('cli_regime','SIMPLES NACIONAL');
+    cnpjUltimo=c;
+    const sit=(d.descricao_situacao_cadastral||'').toUpperCase();
+    const fant=d.nome_fantasia?' · '+d.nome_fantasia:'';
+    if(sit==='ATIVA') cnpjStatus('Empresa ATIVA'+fant+' — confira telefone, e-mail e IE.','ok');
+    else cnpjStatus('Atenção: situação cadastral '+(sit||'desconhecida')+fant+'.','warn');
+  }catch(e){
+    cnpjStatus(e.name==='AbortError'?'A consulta demorou demais. Tente novamente ou preencha manualmente.':e.message,'bad');
+  }finally{const b=$('btnCnpj');if(b)b.disabled=false;}
+}
+(function(){
+  const inp=$('cli_doc');if(!inp)return;
+  inp.addEventListener('input',()=>{
+    inp.value=mascaraDoc(inp.value);
+    const c=soDigitos(inp.value);
+    if(c.length===14&&c!==cnpjUltimo) buscarCnpj();
+    else if(c.length<14&&c.length!==11) cnpjStatus('Digite o CNPJ para preencher os dados automaticamente.');
+  });
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();buscarCnpj();}});
+})();
 function save(){try{const s=state();localStorage.setItem('cotacao42',JSON.stringify({s,opc:opcRows,man:manRows,quoteId}));}catch(e){}}
 function load(){try{const d=JSON.parse(localStorage.getItem('cotacao42'));if(!d)return;
   Object.entries(d.s).forEach(([k,v])=>{const el=document.querySelector(`[data-k="${k}"]`);if(el&&typeof v!=='object')el.value=v;});
