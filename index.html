@@ -200,13 +200,13 @@ input.dt::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;filter:inve
       <select id="ipi" data-k="ipi"><option value="0">0</option><option value="5">5</option></select></div>
     <div class="f"><label class="lbl" for="pis">PIS/COFINS %</label>
       <select id="pis" data-k="pis"><option value="9.25">9,25</option><option value="0">0</option></select></div>
-    <div class="f"><label class="lbl" for="comissao">Comissão %</label><input id="comissao" data-k="comissao" type="number" step="0.01" min="0" value="0"></div>
+    <div class="f"><label class="lbl" for="comissao">Comissão % <em style="font-weight:400">(calculada)</em></label><input id="comissao" data-k="comissao" type="number" step="0.01" min="0" value="0" readonly></div>
     <div class="f"><label class="lbl" for="desc">Desconto produto %</label><input id="desc" data-k="desc" type="number" step="0.01" min="0" max="100" value="43"></div>
     <div class="f"><label class="lbl" for="descPneu">Desconto pneus %</label><input id="descPneu" data-k="descPneu" type="number" step="0.01" min="0" max="100" value="48.69"></div>
     <div class="f span2"><label class="lbl" for="ajuste">Desconto (−) ou acréscimo (+) em R$ no preço final</label><input id="ajuste" data-k="ajuste" type="number" step="0.01" value="0"></div>
     <div class="f span2"><label class="lbl" for="lpp">Lista de preço (LPP)</label>
       <select id="lpp" data-k="lpp"></select></div>
-    <div class="f span2"><span class="lbl">Comissão autorizada</span><input id="comAut" readonly><span class="hint">Acima de 5%, a parte excedente é dividida por 2.</span></div>
+    <div class="f span2"><span class="lbl">Categoria / regra aplicada</span><input id="comAut" readonly><span class="hint" id="comHint">Comissão calculada automaticamente pela tabela comercial (família do produto × desconto pedido).</span></div>
   </div>
 </section>
 
@@ -353,6 +353,64 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAC4oAAAEdCAYAAADwsnhvAA
 const ICMS_OPTS=[0,7,12,13.3,17,18,19,19.5,20,20.5,21,22,22.5];
 const LPP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const FAMILIAS=['Basculante','Carrega Tudo','Florestal','Bobineiro','Carga Seca','Graneleiro','Furgão','Sider','Tanque','Porta Container'];
+// Tabela comercial: desconto MAXIMO permitido no produto por faixa de comissao (regra passada pelo Kayque em 28/09/2026, print da planilha).
+const COM_DESC={
+  'BASCULANTE':{5:36,3:38,2:40,0:41},
+  'BITREM BASCULANTE':{5:33,3:36,2:39,0:40},
+  'RODOTREM BASCULANTE 3MM':{5:40,3:42,2:43,0:44},
+  'RODOTREM BASCULANTE 2MM':{5:41,3:43,2:44,0:45},
+  'BOBINEIRO':{5:35,3:37,2:39,0:40},
+  'CARGA SECA':{5:39,3:41,2:43,0:44},
+  'RODOTREM CARGA SECA':{5:40,3:42,2:44,0:45},
+  'CARREGA TUDO':{5:34,3:36,2:38,0:39},
+  'FLORESTAL':{5:28,3:31,2:32,0:33},
+  'FURGÃO (SUMARÉ)':{5:42,3:43,2:45,0:46},
+  'FURGÃO (CAXIAS)':{5:41,3:42,2:45,0:45},
+  'GRANELEIRO':{5:38,3:41,2:42,0:43},
+  'RODOTREM GRANELEIRO':{5:39,3:41,2:43,0:44},
+  'PORTA CONTAINER (SUMARÉ)':{5:39,3:40,2:42,0:43},
+  'PORTA CONTAINER (CAXIAS)':{5:37,3:38,2:40,0:41},
+  'SIDER (SUMARÉ)':{5:40,3:41,2:42,0:43},
+  'SIDER (CAXIAS)':{5:39,3:40,2:41,0:42},
+  'SIDER BEBIDAS':{5:36,3:37,2:39,0:40},
+  'TANQUE':{5:33,3:34,2:36,0:36},
+  'TANQUE COMPARTIMENTADO':{5:31,3:31,2:32,0:33},
+  'TANQUE INOX':{5:37,3:38,2:40,0:41},
+  'PNEU':{5:42,3:43,2:44,0:45},
+};
+// Identifica a linha da tabela conforme a familia + o modelo escolhido (Bitrem/Rodotrem vem do prefixo "CONJ." na descricao do produto).
+// Furgao/Sider/Porta Container: a praca de fabricacao (Sumare/Caxias) nao existe como dado no catalogo -> default conservador Caxias (confirmar com Kayque).
+function categoriaComissao(fam, prod){
+  const desc=((prod&&prod.desc)||'').toUpperCase();
+  const asso=((prod&&prod.assoalho)||'').toUpperCase();
+  const bitrem=/CONJ\.\s*BT\b/.test(desc);
+  const rodotrem=/CONJ\.\s*(RT|RDT)\b/.test(desc);
+  if(fam==='Basculante'){
+    if(bitrem) return 'BITREM BASCULANTE';
+    if(rodotrem) return asso.includes('2,00') ? 'RODOTREM BASCULANTE 2MM' : 'RODOTREM BASCULANTE 3MM';
+    return 'BASCULANTE';
+  }
+  if(fam==='Carga Seca') return rodotrem ? 'RODOTREM CARGA SECA' : 'CARGA SECA';
+  if(fam==='Graneleiro') return rodotrem ? 'RODOTREM GRANELEIRO' : 'GRANELEIRO';
+  if(fam==='Bobineiro') return 'BOBINEIRO';
+  if(fam==='Carrega Tudo') return 'CARREGA TUDO';
+  if(fam==='Florestal') return 'FLORESTAL';
+  if(fam==='Tanque'){
+    if(desc.includes('INOX')) return 'TANQUE INOX';
+    if(desc.includes('UNICO')||desc.includes('ÚNICO')) return 'TANQUE';
+    return 'TANQUE COMPARTIMENTADO';
+  }
+  if(fam==='Sider') return (/\bBB\b|AMBEV|COCA/.test(desc)) ? 'SIDER BEBIDAS' : 'SIDER (CAXIAS)';
+  if(fam==='Furgão') return 'FURGÃO (CAXIAS)';
+  if(fam==='Porta Container') return 'PORTA CONTAINER (CAXIAS)';
+  return null;
+}
+// Dado a categoria e o desconto pedido, acha a maior comissao (5>3>2>0) cujo limite de desconto comporta o desconto pedido.
+function comissaoPorDesconto(categoria, desconto){
+  const tab=COM_DESC[categoria]; if(!tab) return {comissao:0, estourou:false};
+  for(const t of [5,3,2,0]){ if(desconto<=tab[t]) return {comissao:t, estourou:false}; }
+  return {comissao:0, estourou:true, maxDesc:tab[0]};
+}
 const $=id=>document.getElementById(id);
 const fmt=v=>(v==null||isNaN(v))?'—':v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmtN=(v,d=2)=>v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -670,18 +728,28 @@ function calcular(s){
   r.C14=r.C11*0.7275/B29;
   // C15: desconto autorizado
   r.C15=r.C14*(1-s.desc/100);
+  // Comissão: linkada e condicionada ao desconto do produto (tabela comercial 28/09/2026)
+  const categoria=categoriaComissao(s.familia, prod);
+  const resProd=comissaoPorDesconto(categoria, s.desc);
+  let comissao=resProd.comissao, estourou=resProd.estourou;
+  const pneu=BASE.op.find(x=>x.fam==='Pneu'&&x.desc===s.pneu);
+  if(pneu){
+    const resPneu=comissaoPorDesconto('PNEU', s.descPneu);
+    if(resPneu.comissao<comissao) comissao=resPneu.comissao;
+    if(resPneu.estourou) estourou=true;
+  }
+  r.categoria=categoria; r.comissao=comissao; r.estourou=estourou; r.comissaoMax=resProd.maxDesc;
   // C17: comissão (sobre base líquida de ICMS+PIS/COFINS)
   const k=(100-(s.icms+s.pis))/100;
-  r.C17=r.C15/(1-s.comissao/(100*k));
+  r.C17=r.C15/(1-comissao/(100*k));
   r.M42=r.C17;
-  r.comAut=s.comissao>5?(s.comissao-5)/2+5:s.comissao;
+  r.comAut=comissao;
   // Pneus
-  const pneu=BASE.op.find(x=>x.fam==='Pneu'&&x.desc===s.pneu);
   r.C44=pneu?pneu.valor:0;
   r.C45=s.pis===9.25?r.C44:r.C44*0.9075;
   r.C46=r.C45*0.82/(1-s.icms/100);
   r.C47=r.C46*(1-s.descPneu/100);
-  r.C48=r.C47*(1+s.comissao/100);   // M48 unitário
+  r.C48=r.C47*(1+comissao/100);   // M48 unitário
   r.M49=r.C48*s.pneuQ;
   // M54 valor total do conjunto
   r.M52=s.ajuste; r.M54=r.M49+r.M42+r.M52;
@@ -708,7 +776,12 @@ function recalc(){
   r.man.forEach((m,i)=>{const el=$('manV'+i);if(el)el.textContent=fmt(m.v);});
   $('remontaV').textContent=s.remonta?fmt(r.remonta):'—';$('montagemV').textContent=s.montagem?fmt(r.montagem):'—';$('rodasV').textContent=s.rodas?fmt(r.rodas):'—';
   $('pneuP').value=s.pneu?fmt(r.C44):'';
-  $('comAut').value=fmtN(r.comAut)+' %';
+  $('comissao').value=r.comissao;
+  $('comAut').value=(r.categoria||'—')+' · comissão '+fmtN(r.comissao,0)+'%';
+  $('comHint').textContent=r.estourou
+    ?('⚠ Desconto pedido acima do máximo permitido para esta categoria ('+r.comissaoMax+'%) — comissão zerada.')
+    :'Comissão calculada automaticamente pela tabela comercial (família do produto × desconto pedido).';
+  $('comHint').style.color=r.estourou?'#c00000':'';
   $('s_pp').textContent=fmt(r.M41);
   $('s_ipiLbl').textContent='Com IPI '+fmtN(s.ipi,0)+'%';$('s_ipi').textContent=fmt(r.C11);
   $('s_base').textContent=fmt(r.C14);
