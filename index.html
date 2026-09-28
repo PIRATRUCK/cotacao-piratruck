@@ -200,13 +200,14 @@ input.dt::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;filter:inve
       <select id="ipi" data-k="ipi"><option value="0">0</option><option value="5">5</option></select></div>
     <div class="f"><label class="lbl" for="pis">PIS/COFINS %</label>
       <select id="pis" data-k="pis"><option value="9.25">9,25</option><option value="0">0</option></select></div>
-    <div class="f"><label class="lbl" for="comissao">Comissão % <em style="font-weight:400">(calculada)</em></label><input id="comissao" data-k="comissao" type="number" step="0.01" min="0" value="0" readonly></div>
-    <div class="f"><label class="lbl" for="desc">Desconto produto %</label><input id="desc" data-k="desc" type="number" step="0.01" min="0" max="100" value="43"></div>
-    <div class="f"><label class="lbl" for="descPneu">Desconto pneus %</label><input id="descPneu" data-k="descPneu" type="number" step="0.01" min="0" max="100" value="48.69"></div>
+    <div class="f"><label class="lbl" for="comissao">Comissão %</label>
+      <select id="comissao" data-k="comissao"><option value="5">5</option><option value="3">3</option><option value="2">2</option><option value="0">0</option></select></div>
+    <div class="f"><label class="lbl" for="desc">Desconto produto % <em style="font-weight:400">(trava na Comissão)</em></label><input id="desc" data-k="desc" type="number" step="0.01" min="0" max="100" value="43" readonly></div>
+    <div class="f"><label class="lbl" for="descPneu">Desconto pneus % <em style="font-weight:400">(trava na Comissão)</em></label><input id="descPneu" data-k="descPneu" type="number" step="0.01" min="0" max="100" value="48.69" readonly></div>
     <div class="f span2"><label class="lbl" for="ajuste">Desconto (−) ou acréscimo (+) em R$ no preço final</label><input id="ajuste" data-k="ajuste" type="number" step="0.01" value="0"></div>
     <div class="f span2"><label class="lbl" for="lpp">Lista de preço (LPP)</label>
       <select id="lpp" data-k="lpp"></select></div>
-    <div class="f span2"><span class="lbl">Categoria / regra aplicada</span><input id="comAut" readonly><span class="hint" id="comHint">Comissão calculada automaticamente pela tabela comercial (família do produto × desconto pedido).</span></div>
+    <div class="f span2"><span class="lbl">Categoria aplicada</span><input id="comAut" readonly><span class="hint" id="comHint">O desconto do produto é definido automaticamente pela Comissão % escolhida (tabela comercial). Só admin pode digitar o desconto manualmente.</span></div>
   </div>
 </section>
 
@@ -405,11 +406,30 @@ function categoriaComissao(fam, prod){
   if(fam==='Porta Container') return 'PORTA CONTAINER (CAXIAS)';
   return null;
 }
-// Dado a categoria e o desconto pedido, acha a maior comissao (5>3>2>0) cujo limite de desconto comporta o desconto pedido.
-function comissaoPorDesconto(categoria, desconto){
-  const tab=COM_DESC[categoria]; if(!tab) return {comissao:0, estourou:false};
-  for(const t of [5,3,2,0]){ if(desconto<=tab[t]) return {comissao:t, estourou:false}; }
-  return {comissao:0, estourou:true, maxDesc:tab[0]};
+// Dado a categoria e a comissao escolhida (5/3/2/0), devolve o desconto de produto correspondente da tabela.
+function descontoPorComissao(categoria, comissao){
+  const tab=COM_DESC[categoria]; if(!tab) return null;
+  return tab[comissao] ?? null;
+}
+// Aplica o desconto (produto e pneu) de acordo com a comissao escolhida. So mexe em 'desc'/'descPneu' aqui —
+// assim a edicao manual do admin nesses campos nao e sobrescrita pelo recalc() normal.
+function aplicarDesconto(){
+  const s=state(); const prod=BASE.sr.find(x=>x.fam===s.familia&&x.desc===s.modelo);
+  const categoria=categoriaComissao(s.familia, prod);
+  const dp=descontoPorComissao(categoria, s.comissao);
+  if(dp!=null) setCampo('desc', dp);
+  if(s.pneu){
+    const dpn=descontoPorComissao('PNEU', s.comissao);
+    if(dpn!=null) setCampo('descPneu', dpn);
+  }
+}
+function aplicarLockDesconto(){
+  const adm=isAdminUser();
+  ['desc','descPneu'].forEach(id=>{
+    const el=$(id); if(!el) return;
+    el.readOnly=!adm;
+    el.title=adm?'':'Travado — o desconto é definido pela Comissão %. Só admin pode digitar manualmente.';
+  });
 }
 const $=id=>document.getElementById(id);
 const fmt=v=>(v==null||isNaN(v))?'—':v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -460,6 +480,8 @@ function setUser(u){
     if(!$('consultor').value)$('consultor').value=(u.displayName||u.email.split('@')[0]).toUpperCase();
     iniciarHist();
   }else if(dbUnsub){dbUnsub();dbUnsub=null;histDocs=[];}
+  aplicarLockDesconto();
+  if(last)recalc();
 }
 function initAuth(){
   if(!FB){ $('loginOverlay').hidden=true; $('histFonte').textContent='Firebase não configurado — histórico salvo somente neste navegador.'; return; }
@@ -652,8 +674,13 @@ function init(){
   fill($('pneu'),BASE.op.filter(o=>o.fam==='Pneu').map(o=>o.desc),'— sem pneus');
   $('data').value=new Date().toISOString().slice(0,10);
   fillModelos();
-  document.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('input',()=>{if(el.id==='familia'){fillModelos();opcRows=[];renderOpc();}recalc();}));
+  document.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('input',()=>{
+    if(el.id==='familia'){fillModelos();opcRows=[];renderOpc();}
+    if(['familia','modelo','comissao','pneu'].includes(el.id))aplicarDesconto();
+    recalc();
+  }));
   load();
+  aplicarLockDesconto();aplicarDesconto();
   renderOpc();renderMan();recalc();
   ['fCons','fCli','fDe','fAte'].forEach(id=>$(id).addEventListener('input',renderHist));
   ['fDe','fAte'].forEach(id=>{const el=$(id); el.addEventListener('click',()=>{try{el.showPicker&&el.showPicker();}catch(e){}});});
@@ -728,28 +755,20 @@ function calcular(s){
   r.C14=r.C11*0.7275/B29;
   // C15: desconto autorizado
   r.C15=r.C14*(1-s.desc/100);
-  // Comissão: linkada e condicionada ao desconto do produto (tabela comercial 28/09/2026)
-  const categoria=categoriaComissao(s.familia, prod);
-  const resProd=comissaoPorDesconto(categoria, s.desc);
-  let comissao=resProd.comissao, estourou=resProd.estourou;
-  const pneu=BASE.op.find(x=>x.fam==='Pneu'&&x.desc===s.pneu);
-  if(pneu){
-    const resPneu=comissaoPorDesconto('PNEU', s.descPneu);
-    if(resPneu.comissao<comissao) comissao=resPneu.comissao;
-    if(resPneu.estourou) estourou=true;
-  }
-  r.categoria=categoria; r.comissao=comissao; r.estourou=estourou; r.comissaoMax=resProd.maxDesc;
+  // Comissão (5/3/2/0%, escolhida pelo vendedor) define o desconto do produto, que fica travado (tabela comercial 28/09/2026)
+  r.categoria=categoriaComissao(s.familia, prod);
   // C17: comissão (sobre base líquida de ICMS+PIS/COFINS)
   const k=(100-(s.icms+s.pis))/100;
-  r.C17=r.C15/(1-comissao/(100*k));
+  r.C17=r.C15/(1-s.comissao/(100*k));
   r.M42=r.C17;
-  r.comAut=comissao;
+  r.comAut=s.comissao;
   // Pneus
+  const pneu=BASE.op.find(x=>x.fam==='Pneu'&&x.desc===s.pneu);
   r.C44=pneu?pneu.valor:0;
   r.C45=s.pis===9.25?r.C44:r.C44*0.9075;
   r.C46=r.C45*0.82/(1-s.icms/100);
   r.C47=r.C46*(1-s.descPneu/100);
-  r.C48=r.C47*(1+comissao/100);   // M48 unitário
+  r.C48=r.C47*(1+s.comissao/100);   // M48 unitário
   r.M49=r.C48*s.pneuQ;
   // M54 valor total do conjunto
   r.M52=s.ajuste; r.M54=r.M49+r.M42+r.M52;
@@ -776,12 +795,10 @@ function recalc(){
   r.man.forEach((m,i)=>{const el=$('manV'+i);if(el)el.textContent=fmt(m.v);});
   $('remontaV').textContent=s.remonta?fmt(r.remonta):'—';$('montagemV').textContent=s.montagem?fmt(r.montagem):'—';$('rodasV').textContent=s.rodas?fmt(r.rodas):'—';
   $('pneuP').value=s.pneu?fmt(r.C44):'';
-  $('comissao').value=r.comissao;
-  $('comAut').value=(r.categoria||'—')+' · comissão '+fmtN(r.comissao,0)+'%';
-  $('comHint').textContent=r.estourou
-    ?('⚠ Desconto pedido acima do máximo permitido para esta categoria ('+r.comissaoMax+'%) — comissão zerada.')
-    :'Comissão calculada automaticamente pela tabela comercial (família do produto × desconto pedido).';
-  $('comHint').style.color=r.estourou?'#c00000':'';
+  $('comAut').value=r.categoria||'—';
+  $('comHint').textContent=isAdminUser()
+    ?'Admin: desconto liberado pra edição manual (além do que a Comissão % preenche).'
+    :'O desconto do produto é definido automaticamente pela Comissão % escolhida (tabela comercial). Só admin pode digitar o desconto manualmente.';
   $('s_pp').textContent=fmt(r.M41);
   $('s_ipiLbl').textContent='Com IPI '+fmtN(s.ipi,0)+'%';$('s_ipi').textContent=fmt(r.C11);
   $('s_base').textContent=fmt(r.C14);
