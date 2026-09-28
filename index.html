@@ -746,9 +746,9 @@ function buildDoc(s,r){
   <div><b>Código:</b> ${p?esc(p.cod):''} &nbsp; <b>Cam. trator:</b> ${p?trator(p.desc):''}</div><div><b>Comprimento:</b> ${p?fmtN(r.metros,3)+' m':''} &nbsp; <b>Assoalho:</b> ${p?esc(p.assoalho):''}</div>
   <div><b>Rodas:</b> ${s.rodas?esc(s.rodas):'Roda 8.25x22.5 aço (padrão)'}</div><div><b>Quantidade:</b> ${s.qtd}</div></div>
   <h2>Configuração e opcionais</h2>
-  <table><thead><tr><th>Descrição</th><th>Un.</th><th style="text-align:right">Qtde.</th><th style="text-align:right">Preço público unit.</th><th style="text-align:right">Preço público</th></tr></thead>
-  <tbody>${linhas.map(l=>`<tr><td>${esc(l[0])}</td><td>${esc(l[1])}</td><td style="text-align:right">${l[2]}</td><td style="text-align:right">${l[3]}</td><td style="text-align:right">${l[4]}</td></tr>`).join('')}
-  <tr><td colspan="4"><b>Total preço público</b></td><td style="text-align:right"><b>${fmt(r.M41)}</b></td></tr></tbody></table>
+  <table><thead><tr><th>Descrição</th><th>Un.</th><th style="text-align:right">Qtde.</th></tr></thead>
+  <tbody>${linhas.map(l=>`<tr><td>${esc(l[0])}</td><td>${esc(l[1])}</td><td style="text-align:right">${l[2]}</td></tr>`).join('')}
+  </tbody></table>
   ${s.pneu?`<h2>Pneus</h2><table><tbody><tr><td>${esc(s.pneu.trim())}</td><td style="text-align:right">${s.pneuQ} un.</td><td style="text-align:right">${fmt(r.C48)} / un.</td><td style="text-align:right"><b>${fmt(r.M49)}</b></td></tr></tbody></table>`:''}
   <h2>Valores</h2>
   <div class="dtot">
