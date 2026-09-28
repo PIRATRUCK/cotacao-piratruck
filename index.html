@@ -824,7 +824,7 @@ async function buscarCnpj(){
 })();
 function save(){try{const s=state();localStorage.setItem('cotacao42',JSON.stringify({s,opc:opcRows,man:manRows,quoteId}));}catch(e){}}
 function load(){try{const d=JSON.parse(localStorage.getItem('cotacao42'));if(!d)return;
-  Object.entries(d.s).forEach(([k,v])=>{const el=document.querySelector(`[data-k="${k}"]`);if(el&&typeof v!=='object')el.value=v;});
+  Object.entries(d.s).forEach(([k,v])=>{if(k==='data')return;const el=document.querySelector(`[data-k="${k}"]`);if(el&&typeof v!=='object')el.value=v;});
   fillModelos();if(d.s.modelo)$('modelo').value=d.s.modelo;
   opcRows=d.opc||[];manRows=d.man||[];if(d.quoteId)quoteId=d.quoteId;}catch(e){}}
 function limparTudo(){if(!confirm('Limpar todos os campos e iniciar uma nova cotação?'))return;try{localStorage.removeItem('cotacao42')}catch(e){}location.reload();}
